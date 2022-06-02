@@ -1,20 +1,23 @@
 package org.tty.dailyset.contract.bean.entity
 
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import org.tty.dailyset.contract.bean.annotation.ContentBean
 import org.tty.dailyset.contract.bean.declare.ResourceContent
 import org.tty.dailyset.contract.bean.enums.DailySetContentType
-import kotlinx.serialization.Serializable
 
 /**
- * dailyset content: basic.
+ * dailyset content: student info.
  * @see [ResourceContent]
  */
-@ContentBean(DailySetContentType.Basic)
+@ContentBean(DailySetContentType.StudentInfo)
 @Serializable
-@SerialName("basic")
-data class DailySetBasic(
+@SerialName("studentInfo")
+data class DailySetStudentInfo(
     override val uid: String,
+    val collegeName: String,
+    val className: String,
     val name: String,
-    val icon: String,
+    val inviteYear: Int,
+    val graduationYear: Int,
 ): ResourceContent, DailySetContent

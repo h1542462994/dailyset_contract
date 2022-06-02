@@ -7,14 +7,14 @@ import org.tty.dailyset.contract.bean.enums.DailySetContentType
 import kotlinx.serialization.Serializable
 
 /**
- * dailyset content: basic.
+ * dailyset content: school info
  * @see [ResourceContent]
  */
-@ContentBean(DailySetContentType.Basic)
+@ContentBean(DailySetContentType.SchoolInfo)
 @Serializable
-@SerialName("basic")
-data class DailySetBasic(
+@SerialName("schoolInfo")
+data class DailySetSchoolInfo(
     override val uid: String,
-    val name: String,
-    val icon: String,
+    val identifier: String,
+    val name: String
 ): ResourceContent, DailySetContent

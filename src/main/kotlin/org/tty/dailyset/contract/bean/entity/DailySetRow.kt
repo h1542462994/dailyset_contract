@@ -7,14 +7,16 @@ import org.tty.dailyset.contract.bean.enums.DailySetContentType
 import kotlinx.serialization.Serializable
 
 /**
- * dailyset content: basic.
+ * dailyset content: row
  * @see [ResourceContent]
  */
-@ContentBean(DailySetContentType.Basic)
+@ContentBean(DailySetContentType.Row)
 @Serializable
-@SerialName("basic")
-data class DailySetBasic(
+@SerialName("row")
+data class DailySetRow(
     override val uid: String,
-    val name: String,
-    val icon: String,
+    val tableUid: String,
+    val currentIndex: Int,
+    val weekdays: String,
+    val counts: String
 ): ResourceContent, DailySetContent
