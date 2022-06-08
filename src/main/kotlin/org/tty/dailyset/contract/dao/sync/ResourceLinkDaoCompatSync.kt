@@ -5,7 +5,7 @@ import org.tty.dailyset.contract.declare.ResourceLink
 /**
  * dao compat for [ResourceLink]
  */
-interface ResourceLinkDaoCompat<EC, TL: ResourceLink<EC>> {
+interface ResourceLinkDaoCompatSync<EC, TL> {
     fun findAllByUidAndTypeAndVersionNewer(uid: String, type: EC, version: Int): List<TL>
     fun applies(links: List<TL>): Int
 }

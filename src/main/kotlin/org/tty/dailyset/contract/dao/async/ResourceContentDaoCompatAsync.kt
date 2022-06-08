@@ -7,7 +7,7 @@ import org.tty.dailyset.contract.declare.ResourceContent
  * compat dao for [ResourceContent]
  * @param TC the storage data.
  */
-interface ResourceDaoCompatAsync<TC>: DaoCompatAsync<TC> {
+interface ResourceContentDaoCompatAsync<TC>: DaoCompatAsync<TC> {
     fun findAllByUidsFlow(uids: List<String>): Flow<List<TC>>
     suspend fun findAllByUids(uids: List<String>): List<TC>
     suspend fun applies(contents: List<TC>): Int

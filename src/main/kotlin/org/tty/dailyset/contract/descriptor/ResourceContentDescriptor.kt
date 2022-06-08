@@ -15,6 +15,6 @@ import kotlin.reflect.KType
 sealed interface ResourceContentDescriptor<T: ResourceContent, TE, EC> {
     val type: KType
     val contentType: EC
-    val equality: ResourceEquality<T>?
-    val converter: ResourceConverter<T, TE>?
+    val equality: ResourceEquality<T>
+    val converter: ResourceConverter<T, TE>
 }

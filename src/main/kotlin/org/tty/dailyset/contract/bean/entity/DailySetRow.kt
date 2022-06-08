@@ -17,6 +17,6 @@ data class DailySetRow(
     override val uid: String,
     val tableUid: String,
     val currentIndex: Int,
-    val weekdays: String,
-    val counts: String
+    val weekdays: List<Int>,
+    val counts: List<Int>
 ): ResourceContent, DailySetContent

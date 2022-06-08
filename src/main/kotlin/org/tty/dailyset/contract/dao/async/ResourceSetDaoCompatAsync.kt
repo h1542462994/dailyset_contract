@@ -6,7 +6,7 @@ import org.tty.dailyset.contract.declare.ResourceSet
 /**
  * dao compat for [ResourceSet]
  */
-interface ResourceSetDaoCompatAsync<ES, TS: ResourceSet<ES>>: DaoCompatAsync<TS> {
+interface ResourceSetDaoCompatAsync<TS>: DaoCompatAsync<TS> {
     fun findByUidFlow(uid: String): Flow<TS?>
     fun findAllByUidsFlow(uids: List<String>): Flow<List<TS>>
     suspend fun findByUid(uid: String): TS?
