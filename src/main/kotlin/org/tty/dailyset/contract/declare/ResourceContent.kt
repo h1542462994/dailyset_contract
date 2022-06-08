@@ -1,4 +1,4 @@
-package org.tty.dailyset.contract.bean.declare
+package org.tty.dailyset.contract.declare
 
 /**
  * **resource content.** the resource content defined in sync module.

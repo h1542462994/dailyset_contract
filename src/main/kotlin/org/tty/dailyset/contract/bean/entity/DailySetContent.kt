@@ -1,7 +1,7 @@
 package org.tty.dailyset.contract.bean.entity
 
 import kotlinx.serialization.Polymorphic
-import org.tty.dailyset.contract.bean.declare.ResourceContent
+import org.tty.dailyset.contract.declare.ResourceContent
 import kotlinx.serialization.Serializable
 
 /**

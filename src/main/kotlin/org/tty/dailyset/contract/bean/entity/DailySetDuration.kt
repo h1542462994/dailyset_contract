@@ -1,7 +1,7 @@
 package org.tty.dailyset.contract.bean.entity
 
 import kotlinx.serialization.SerialName
-import org.tty.dailyset.contract.bean.declare.ResourceContent
+import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.bean.enums.DailySetDurationType
 import org.tty.dailyset.contract.bean.enums.DailySetPeriodCode
 import java.time.LocalDate

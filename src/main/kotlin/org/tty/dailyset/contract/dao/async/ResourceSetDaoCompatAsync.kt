@@ -1,12 +1,12 @@
-package org.tty.dailyset.contract.dao.flow
+package org.tty.dailyset.contract.dao.async
 
 import kotlinx.coroutines.flow.Flow
-import org.tty.dailyset.contract.bean.declare.ResourceSet
+import org.tty.dailyset.contract.declare.ResourceSet
 
 /**
  * dao compat for [ResourceSet]
  */
-interface FlowResourceSetDaoCompat<ES, TS: ResourceSet<ES>>: FlowDaoCompat<TS> {
+interface ResourceSetDaoCompatAsync<ES, TS: ResourceSet<ES>>: DaoCompatAsync<TS> {
     fun findByUidFlow(uid: String): Flow<TS?>
     fun findAllByUidsFlow(uids: List<String>): Flow<List<TS>>
     suspend fun findByUid(uid: String): TS?

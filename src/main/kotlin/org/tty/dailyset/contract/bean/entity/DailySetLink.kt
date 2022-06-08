@@ -1,6 +1,6 @@
 package org.tty.dailyset.contract.bean.entity
 
-import org.tty.dailyset.contract.bean.declare.ResourceLink
+import org.tty.dailyset.contract.declare.ResourceLink
 import org.tty.dailyset.contract.bean.enums.DailySetContentType
 import kotlinx.serialization.Serializable
 import org.tty.dailyset.contract.bean.serializer.LocalDateTimeIso8601Serializer

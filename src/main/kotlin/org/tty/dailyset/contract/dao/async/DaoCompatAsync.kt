@@ -1,11 +1,11 @@
-package org.tty.dailyset.contract.dao.flow
+package org.tty.dailyset.contract.dao.async
 
 import kotlinx.coroutines.flow.Flow
 
 /**
  * dao compat flow version.
  */
-interface FlowDaoCompat<T> {
+interface DaoCompatAsync<T> {
     /**
      * a cursor to support complex query.
      */

@@ -1,4 +1,4 @@
-package org.tty.dailyset.contract.bean.declare
+package org.tty.dailyset.contract.declare
 
 import java.time.LocalDateTime
 

@@ -1,9 +1,10 @@
 package org.tty.dailyset.contract.module
 
-import kotlin.reflect.KType
+import org.tty.dailyset.contract.declare.ResourceContent
+import org.tty.dailyset.contract.descriptor.ResourceContentDescriptor
 
-class DailySetResourceSyncBuilder: ResourceSyncBuilder<DailySetResourceSyncModule> {
-    override fun registerContentTypes(vararg types: KType) {
+class DailySetResourceSyncBuilder: ResourceSyncBuilderSync<DailySetResourceSyncModule> {
+    override fun <T : ResourceContent, TE, EC> registerContentDescriptor(descriptor: ResourceContentDescriptor<T, TE, EC>) {
         TODO("Not yet implemented")
     }
     override fun build(): DailySetResourceSyncModule {
