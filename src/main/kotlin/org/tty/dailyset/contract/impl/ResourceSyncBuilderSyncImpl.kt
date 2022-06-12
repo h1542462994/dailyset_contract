@@ -1,5 +1,6 @@
 package org.tty.dailyset.contract.impl
 
+import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
 import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.descriptor.*
 import org.tty.dailyset.contract.module.sync.ResourceSyncBuilderSync
@@ -12,6 +13,7 @@ class ResourceSyncBuilderSyncImpl<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TTL
     private var temporalLinkDescriptor: ResourceTemporalLinkDescriptorSync<TTL, *, EC>? = null
     private var contentDescriptors: MutableList<ResourceContentDescriptorSync<out TC, *, EC>> = mutableListOf()
     private var setVisibilityDescriptor: ResourceSetVisibilityDescriptorSync<TV, *>? = null
+    private var transactionSupport: TransactionSupportSync? = null
 
     override fun <TE> registerSetDescriptor(descriptor: ResourceSetDescriptorSync<TS, TE, ES>) {
         this.setDescriptor = descriptor
@@ -37,6 +39,10 @@ class ResourceSyncBuilderSyncImpl<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TTL
         this.setVisibilityDescriptor = descriptor
     }
 
+    override fun useTransactionSupport(transactionSupport: TransactionSupportSync) {
+        this.transactionSupport = transactionSupport
+    }
+
     override fun buildClient(): ResourceSyncClientSync<TS, TL, TTL, TC, TV, ES, EC> {
         val descriptorSet = DescriptorSetSync(
             setDescriptor = setDescriptor!!,
@@ -45,7 +51,7 @@ class ResourceSyncBuilderSyncImpl<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TTL
             contentDescriptors = contentDescriptors,
             setVisibilityDescriptor = setVisibilityDescriptor!!
         )
-        return ResourceSyncClientSyncImpl(descriptorSet)
+        return ResourceSyncClientSyncImpl(descriptorSet, transactionSupport)
     }
 
     override fun buildServer(): ResourceSyncServerSync<TS, TL, TC, ES, EC> {
@@ -56,6 +62,6 @@ class ResourceSyncBuilderSyncImpl<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TTL
             contentDescriptors = contentDescriptors,
             setVisibilityDescriptor = setVisibilityDescriptor!!
         )
-        return ResourceSyncServerSyncImpl(descriptorSet)
+        return ResourceSyncServerSyncImpl(descriptorSet, transactionSupport)
     }
 }

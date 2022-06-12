@@ -1,5 +1,6 @@
 package org.tty.dailyset.contract.module.sync
 
+import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
 import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.descriptor.*
 
@@ -19,6 +20,8 @@ interface ResourceSyncBuilderSync<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TTL
     fun registerContentDescriptors(vararg descriptors: ResourceContentDescriptorSync<out TC, *, EC>)
 
     fun <TE> registerSetVisibilityDescriptor(descriptor: ResourceSetVisibilityDescriptorSync<TV, TE>)
+
+    fun useTransactionSupport(transactionSupport: TransactionSupportSync)
 
     fun buildClient(): ResourceSyncClientSync<TS, TL, TTL, TC, TV, ES, EC>
 
