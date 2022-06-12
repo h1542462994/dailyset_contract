@@ -11,7 +11,7 @@ import org.tty.dailyset.contract.module.resourceSyncServerSync
 class SampleCodes {
 
     fun sampleOfBuildClientSync() {
-       val client = resourceSyncClientSync<DailySet, DailySetLink, DailySetTemporalLink, DailySetVisibility, DailySetType, DailySetContentType> {
+       val client = resourceSyncClientSync<DailySet, DailySetLink, DailySetTemporalLink, DailySetContent, DailySetVisibility, DailySetType, DailySetContentType> {
             registerSetDescriptor(
                 resourceSetDescriptorSync(resourceSetDaoCompatSync = emptyStub())
             )
@@ -39,7 +39,7 @@ class SampleCodes {
     }
 
     fun sampleOfBuildServerSync() {
-        val server = resourceSyncServerSync<DailySet, DailySetLink, DailySetType, DailySetContentType> {
+        val server = resourceSyncServerSync<DailySet, DailySetLink, DailySetContent, DailySetType, DailySetContentType> {
             registerSetDescriptor(
                 resourceSetDescriptorSync(resourceSetDaoCompatSync = emptyStub())
             )
