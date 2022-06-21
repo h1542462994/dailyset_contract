@@ -12,7 +12,7 @@ import kotlin.reflect.KType
  * @param EC enum for resource content.
  * @see ResourceContent
  */
-sealed interface ResourceContentDescriptor<T: ResourceContent, TE, EC> {
+sealed interface ResourceContentDescriptor<T: ResourceContent, TE: Any, EC> {
     val type: KType
     val contentType: EC
     val equality: ResourceEquality<T>

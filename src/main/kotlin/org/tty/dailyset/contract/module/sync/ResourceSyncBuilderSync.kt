@@ -7,23 +7,23 @@ import org.tty.dailyset.contract.descriptor.*
 /**
  * the builder for resource sync module (sync)
  */
-interface ResourceSyncBuilderSync<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TTL: ResourceTemporalLink<EC>, TC: ResourceContent, TV: ResourceSetVisibility, ES, EC> {
+interface ResourceSyncBuilderSync<TC: ResourceContent, ES, EC> {
 
-    fun <TE> registerSetDescriptor(descriptor: ResourceSetDescriptorSync<TS, TE, ES>)
+    fun <TE: Any> registerSetDescriptor(descriptor: ResourceSetDescriptorSync<TE, ES>)
 
-    fun <TE> registerLinkDescriptor(descriptor: ResourceLinkDescriptorSync<TL, TE, EC>)
+    fun <TE: Any> registerLinkDescriptor(descriptor: ResourceLinkDescriptorSync<TE, EC>)
 
-    fun <TE> registerTemporalLinkDescriptor(descriptor: ResourceTemporalLinkDescriptorSync<TTL, TE, EC>)
+    fun <TE: Any> registerTemporalLinkDescriptor(descriptor: ResourceTemporalLinkDescriptorSync<TE, EC>)
 
-    fun <TE> registerContentDescriptor(descriptor: ResourceContentDescriptorSync<out TC, TE, EC>)
+    fun <TE: Any> registerContentDescriptor(descriptor: ResourceContentDescriptorSync<out TC, TE, EC>)
 
-    fun registerContentDescriptors(vararg descriptors: ResourceContentDescriptorSync<out TC, *, EC>)
+    fun <TE: Any> registerContentDescriptors(vararg descriptors: ResourceContentDescriptorSync<out TC, in TE, EC>)
 
-    fun <TE> registerSetVisibilityDescriptor(descriptor: ResourceSetVisibilityDescriptorSync<TV, TE>)
+    fun <TE: Any> registerSetVisibilityDescriptor(descriptor: ResourceSetVisibilityDescriptorSync<TE>)
 
     fun useTransactionSupport(transactionSupport: TransactionSupportSync)
 
-    fun buildClient(): ResourceSyncClientSync<TS, TL, TTL, TC, TV, ES, EC>
+    fun buildClient(): ResourceSyncClientSync<TC, ES, EC>
 
-    fun buildServer(): ResourceSyncServerSync<TS, TL, TC, ES, EC>
+    fun buildServer(): ResourceSyncServerSync<TC, ES, EC>
 }

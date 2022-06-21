@@ -2,16 +2,13 @@ package org.tty.dailyset.contract.bean.entity
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.tty.dailyset.contract.bean.annotation.ContentBean
-import org.tty.dailyset.contract.declare.ResourceContent
-import org.tty.dailyset.contract.bean.enums.DailySetContentType
 import org.tty.dailyset.contract.bean.serializer.LocalTimeIso8601Serializer
+import org.tty.dailyset.contract.declare.ResourceContent
 import java.time.LocalTime
 
 /**
  * dailyset content: cell
  */
-@ContentBean(DailySetContentType.Cell)
 @Serializable
 @SerialName("cell")
 data class DailySetCell(
@@ -24,4 +21,6 @@ data class DailySetCell(
     val endTime: LocalTime,
     val normalType: Int,
     val normalIndex: Int
-): ResourceContent, DailySetContent
+): ResourceContent, DailySetContent {
+    override fun copyByUid(uid: String): ResourceContent = copy(uid = uid)
+}

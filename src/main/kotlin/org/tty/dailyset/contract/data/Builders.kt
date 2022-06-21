@@ -4,7 +4,7 @@ import org.tty.dailyset.contract.bean.enums.InAction
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceSet
 
-class ApplyingResultBuilder<TS: ResourceSet<ES>, out TC: ResourceContent, ES, EC> {
+class ApplyingResultBuilder<out TC: ResourceContent, ES, EC> {
     private val store: MutableMap<EC, MutableList<ResourceContentIn< @UnsafeVariance TC>>> = mutableMapOf()
 
     fun remove(contentType: EC, content: @UnsafeVariance TC) {
@@ -37,9 +37,9 @@ class ApplyingResultBuilder<TS: ResourceSet<ES>, out TC: ResourceContent, ES, EC
         list.add(ResourceContentIn(InAction.Single, content))
     }
 
-    fun build(set: TS): ApplyingResult<TS, TC, ES, EC> {
-        return ApplyingResult(
-            set,
+    fun build(uid: String): ApplyingReq<TC, EC> {
+        return ApplyingReq(
+            uid,
             typedResourcesApplying = store.entries.map {
                 TypedResourcesApplying(it.key, it.value)
             }
@@ -47,11 +47,11 @@ class ApplyingResultBuilder<TS: ResourceSet<ES>, out TC: ResourceContent, ES, EC
     }
 }
 
-fun <TS: ResourceSet<ES>, TC: ResourceContent, ES, EC> applyingResult(
-    set: TS,
-    builderLambda: ApplyingResultBuilder<TS, TC, ES, EC>.() -> Unit
-): ApplyingResult<TS, TC, ES, EC> {
-    val builder = ApplyingResultBuilder<TS, TC, ES, EC>()
+fun <TC: ResourceContent, ES, EC> applyingResult(
+    uid: String,
+    builderLambda: ApplyingResultBuilder<TC, ES, EC>.() -> Unit
+): ApplyingReq<TC, EC> {
+    val builder = ApplyingResultBuilder<TC, ES, EC>()
     builder.builderLambda()
-    return builder.build(set)
+    return builder.build(uid)
 }

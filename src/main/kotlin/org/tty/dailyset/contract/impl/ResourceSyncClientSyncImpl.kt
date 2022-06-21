@@ -6,15 +6,15 @@ import org.tty.dailyset.contract.data.TypedResources
 import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.module.sync.ResourceSyncClientSync
 
-class ResourceSyncClientSyncImpl<TS : ResourceSet<ES>, TL : ResourceLink<EC>, TTL : ResourceTemporalLink<EC>, TC : ResourceContent, TV : ResourceSetVisibility, ES, EC>(
-    private val descriptorSet: DescriptorSetSync<TS, TL, TTL, TC, TV, ES, EC>,
+class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
+    private val descriptorSet: DescriptorSetSync<TC, ES, EC>,
     private val transactionSupport: TransactionSupportSync?
-) : ResourceSyncClientSync<TS, TL, TTL, TC, TV, ES, EC> {
+) : ResourceSyncClientSync<TC, ES, EC> {
 
-    override fun readBase(uid: String): TS? {
+    override fun readBase(uid: String): ResourceSet<ES>? {
         TODO("Not yet implemented")
     }
-    override fun read(uid: String): SnapshotResult<TS, TC, ES, EC> {
+    override fun read(uid: String): SnapshotResult<TC, ES, EC> {
         TODO("Not yet implemented")
     }
 

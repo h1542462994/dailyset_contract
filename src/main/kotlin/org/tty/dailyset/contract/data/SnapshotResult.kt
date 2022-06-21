@@ -6,13 +6,14 @@ import kotlinx.serialization.Serializable
 
 /**
  * snapshot result of [ResourceSet], implementation is different between client and server.
+ * snapshot will only contain [set] and valid [typedResources]
  */
 @Serializable
-data class SnapshotResult<TS: ResourceSet<ES>,out TC: ResourceContent, ES, EC>(
+data class SnapshotResult<out TC: ResourceContent, ES, EC>(
     /**
      * set and it's version.
      */
-    val set: TS,
+    val set: ResourceSet<ES>,
     /**
      * typed resources.
      */

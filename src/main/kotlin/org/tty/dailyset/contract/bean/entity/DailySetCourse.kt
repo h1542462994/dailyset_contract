@@ -2,13 +2,10 @@ package org.tty.dailyset.contract.bean.entity
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.tty.dailyset.contract.bean.annotation.ContentBean
-import org.tty.dailyset.contract.bean.enums.DailySetContentType
 import org.tty.dailyset.contract.bean.enums.DailySetPeriodCode
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceEquals
 
-@ContentBean(DailySetContentType.Course)
 @Serializable
 @SerialName("course")
 data class DailySetCourse(
@@ -28,4 +25,6 @@ data class DailySetCourse(
     override fun resourceEqual(other: DailySetCourse): Boolean {
         return digest == other.digest
     }
+
+    override fun copyByUid(uid: String): ResourceContent = copy(uid = uid)
 }

@@ -9,12 +9,12 @@ import org.tty.dailyset.contract.declare.ResourceSet
 /**
  * universal apis about sync module.
  */
-interface ResourceSyncModuleSync<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TC: ResourceContent, ES, EC> {
+interface ResourceSyncModuleSync<TC: ResourceContent, ES, EC> {
     /**
      * read base info of [ResourceSet].
      * implementation is different between server and client.
      */
-    fun readBase(uid: String): TS?
+    fun readBase(uid: String): ResourceSet<ES>?
 
     /**
      * read a snapshot result of [ResourceSet].
@@ -23,7 +23,7 @@ interface ResourceSyncModuleSync<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TC: 
      * @see [SnapshotResult]
      * @throws IllegalArgumentException resource set of uid is not existed.
      */
-    fun read(uid: String): SnapshotResult<TS, TC, ES, EC>
+    fun read(uid: String): SnapshotResult<TC, ES, EC>
 
     /**
      * read a snapshot of certain [contentType].

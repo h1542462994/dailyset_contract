@@ -6,21 +6,21 @@ import org.tty.dailyset.contract.descriptor.*
 /**
  * the builder for resource sync module (sync)
  */
-interface ResourceSyncBuilderAsync<TS: ResourceSet<ES>, TL: ResourceLink<EC>, TTL: ResourceTemporalLink<EC>, TC: ResourceContent, TV: ResourceSetVisibility, ES, EC> {
+interface ResourceSyncBuilderAsync<TC: ResourceContent,ES, EC> {
 
-    fun <TE> registerSetDescriptor(descriptor: ResourceSetDescriptorAsync<TS, TE, ES>)
+    fun <TE: Any> registerSetDescriptor(descriptor: ResourceSetDescriptorAsync<TE, ES>)
 
-    fun <TE> registerLinkDescriptor(descriptor: ResourceLinkDescriptorAsync<TL, TE, EC>)
+    fun <TE: Any> registerLinkDescriptor(descriptor: ResourceLinkDescriptorAsync<TE, EC>)
 
-    fun <TE> registerTemporalLinkDescriptor(descriptor: ResourceTemporalLinkDescriptorAsync<TTL, TE, EC>)
+    fun <TE: Any> registerTemporalLinkDescriptor(descriptor: ResourceTemporalLinkDescriptorAsync<TE, EC>)
 
-    fun <TE> registerContentDescriptor(descriptor: ResourceContentDescriptorAsync<out TC, TE, EC>)
+    fun <TE: Any> registerContentDescriptor(descriptor: ResourceContentDescriptorAsync<out TC, TE, EC>)
 
-    fun registerContentDescriptors(vararg descriptor: ResourceContentDescriptorAsync<out TC, *, EC>)
+    fun <TE: Any> registerContentDescriptors(vararg descriptor: ResourceContentDescriptorAsync<out TC, in TE, EC>)
 
-    fun <TE> registerSetVisibilityDescriptor(descriptor: ResourceSetVisibilityDescriptorAsync<TV, TE>)
+    fun <TE: Any> registerSetVisibilityDescriptor(descriptor: ResourceSetVisibilityDescriptorAsync<TE>)
 
-    fun buildClient(): ResourceSyncClientAsync<TS, TL, TTL, TC, TV, ES, EC>
+    fun buildClient(): ResourceSyncClientAsync<TC, ES, EC>
 
-    fun buildServer(): ResourceSyncServerAsync<TS, TL, TC, ES, EC>
+    fun buildServer(): ResourceSyncServerAsync<TC, ES, EC>
 }

@@ -2,16 +2,13 @@ package org.tty.dailyset.contract.bean.entity
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.tty.dailyset.contract.bean.annotation.ContentBean
-import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.bean.enums.DailySetAuthType
-import org.tty.dailyset.contract.bean.enums.DailySetContentType
+import org.tty.dailyset.contract.declare.ResourceContent
 
 /**
  * dailyset content: usage
  * @see [ResourceContent]
  */
-@ContentBean(DailySetContentType.Usage)
 @Serializable
 @SerialName("usage")
 data class DailySetUsage(
@@ -19,4 +16,6 @@ data class DailySetUsage(
     val setUid: String,
     val userUid: String,
     val authType: DailySetAuthType
-): ResourceContent, DailySetContent
+): ResourceContent, DailySetContent {
+    override fun copyByUid(uid: String): ResourceContent = copy(uid = uid)
+}

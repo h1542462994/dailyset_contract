@@ -8,10 +8,10 @@ interface ResourceConverter<T, TE> {
     /**
      * convert form the storage data (entity) to the used data.
      */
-    fun convertFrom(entityBean: TE): T
+    fun convertFrom(entityBean: @UnsafeVariance TE): T
 
     /**
      * convert from the used data to the storage data (entity).
      */
-    fun convertTo(data: T): TE
+    fun convertTo(data: @UnsafeVariance T): TE
 }

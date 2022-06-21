@@ -11,7 +11,7 @@ import org.tty.dailyset.contract.module.resourceSyncServerSync
 class SampleCodes {
 
     fun sampleOfBuildClientSync() {
-       val client = resourceSyncClientSync<DailySet, DailySetLink, DailySetTemporalLink, DailySetContent, DailySetVisibility, DailySetType, DailySetContentType> {
+       val client = resourceSyncClientSync<DailySetContent, DailySetType, DailySetContentType> {
             registerSetDescriptor(
                 resourceSetDescriptorSync(resourceSetDaoCompatSync = emptyStub())
             )
@@ -35,11 +35,12 @@ class SampleCodes {
                 resourceContentDescriptorSync(DailySetContentType.StudentInfo, resourceContentDaoCompatSync = emptyStub<ResourceContentDaoCompatSync<DailySetStudentInfo>>()),
                 resourceContentDescriptorSync(DailySetContentType.SchoolInfo, resourceContentDaoCompatSync = emptyStub<ResourceContentDaoCompatSync<DailySetSchoolInfo>>())
             )
+            useTransactionSupport(emptyStub())
         }
     }
 
     fun sampleOfBuildServerSync() {
-        val server = resourceSyncServerSync<DailySet, DailySetLink, DailySetContent, DailySetType, DailySetContentType> {
+        val server = resourceSyncServerSync<DailySetContent, DailySetType, DailySetContentType> {
             registerSetDescriptor(
                 resourceSetDescriptorSync(resourceSetDaoCompatSync = emptyStub())
             )
@@ -57,6 +58,7 @@ class SampleCodes {
                 resourceContentDescriptorSync(DailySetContentType.StudentInfo, resourceContentDaoCompatSync = emptyStub<ResourceContentDaoCompatSync<DailySetStudentInfo>>()),
                 resourceContentDescriptorSync(DailySetContentType.SchoolInfo, resourceContentDaoCompatSync = emptyStub<ResourceContentDaoCompatSync<DailySetSchoolInfo>>())
             )
+            useTransactionSupport(emptyStub())
         }
     }
 }

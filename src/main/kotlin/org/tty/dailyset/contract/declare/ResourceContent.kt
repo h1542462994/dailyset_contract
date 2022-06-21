@@ -6,4 +6,6 @@ package org.tty.dailyset.contract.declare
 
 interface ResourceContent {
     val uid: String
+
+    fun copyByUid(uid: String): ResourceContent
 }

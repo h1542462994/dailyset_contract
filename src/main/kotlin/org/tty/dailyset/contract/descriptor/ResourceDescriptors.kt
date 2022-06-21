@@ -11,7 +11,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.typeOf
 
-class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE, EC>(
+internal class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE: Any, EC>(
     override val type: KType,
     override val contentType: EC,
     override val equality: ResourceEquality<T>,
@@ -19,7 +19,7 @@ class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE, EC>(
     override val resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>
 ): ResourceContentDescriptorSync<T, TE, EC>
 
-class ResourceContentDescriptorAsyncImpl<T: ResourceContent, TE, EC>(
+internal class ResourceContentDescriptorAsyncImpl<T: ResourceContent, TE: Any, EC>(
     override val type: KType,
     override val contentType: EC,
     override val equality: ResourceEquality<T>,
@@ -27,53 +27,45 @@ class ResourceContentDescriptorAsyncImpl<T: ResourceContent, TE, EC>(
     override val resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>
 ): ResourceContentDescriptorAsync<T, TE, EC>
 
-class ResourceSetDescriptorSyncImpl<T: ResourceSet<ES>, TE, ES>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceSetDescriptorSyncImpl<TE: Any, ES>(
+    override val converter: ResourceConverter<ResourceSet<ES>, TE>,
     override val resourceSetDaoCompatSync: ResourceSetDaoCompatSync<TE>
-): ResourceSetDescriptorSync<T, TE, ES>
+): ResourceSetDescriptorSync<TE, ES>
 
-class ResourceSetDescriptorAsyncImpl<T: ResourceSet<ES>, TE, ES>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceSetDescriptorAsyncImpl<TE: Any, ES>(
+    override val converter: ResourceConverter<ResourceSet<ES>, TE>,
     override val resourceSetDaoCompatAsync: ResourceSetDaoCompatAsync<TE>
-): ResourceSetDescriptorAsync<T, TE, ES>
+): ResourceSetDescriptorAsync<TE, ES>
 
-class ResourceLinkDescriptorSyncImpl<T: ResourceLink<EC>, TE, EC>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceLinkDescriptorSyncImpl<TE: Any, EC>(
+    override val converter: ResourceConverter<ResourceLink<EC>, TE>,
     override val resourceLinkDaoCompatSync: ResourceLinkDaoCompatSync<EC, TE>
-): ResourceLinkDescriptorSync<T, TE, EC>
+): ResourceLinkDescriptorSync<TE, EC>
 
-class ResourceLinkDescriptorAsyncImpl<T: ResourceLink<EC>, TE, EC>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceLinkDescriptorAsyncImpl<TE: Any, EC>(
+    override val converter: ResourceConverter<ResourceLink<EC>, TE>,
     override val resourceLinkDaoCompatAsync: ResourceLinkDaoCompatAsync<EC, TE>
-): ResourceLinkDescriptorAsync<T, TE, EC>
+): ResourceLinkDescriptorAsync<TE, EC>
 
-class ResourceTemporalLinkDescriptorSyncImpl<T: ResourceTemporalLink<EC>, TE, EC>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceTemporalLinkDescriptorSyncImpl<TE: Any, EC>(
+    override val converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
     override val resourceTemporalLinkDaoCompatSync: ResourceTemporalLinkDaoCompatSync<EC, TE>
-): ResourceTemporalLinkDescriptorSync<T, TE, EC>
+): ResourceTemporalLinkDescriptorSync<TE, EC>
 
-class ResourceTemporalLinkDescriptorAsyncImpl<T: ResourceTemporalLink<EC>, TE, EC>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceTemporalLinkDescriptorAsyncImpl<TE: Any, EC>(
+    override val converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
     override val resourceTemporalLinkDaoCompatAsync: ResourceTemporalLinkDaoCompatAsync<EC, TE>
-): ResourceTemporalLinkDescriptorAsync<T, TE, EC>
+): ResourceTemporalLinkDescriptorAsync<TE, EC>
 
-class ResourceSetVisibilityDescriptorSyncImpl<T: ResourceSetVisibility, TE>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceSetVisibilityDescriptorSyncImpl<TE: Any>(
+    override val converter: ResourceConverter<ResourceSetVisibility, TE>,
     override val resourceSetVisibilityDaoCompatSync: ResourceSetVisibilityDaoCompatSync<TE>
-): ResourceSetVisibilityDescriptorSync<T, TE>
+): ResourceSetVisibilityDescriptorSync<TE>
 
-class ResourceSetVisibilityDescriptorAsyncImpl<T: ResourceSetVisibility, TE>(
-    override val type: KType,
-    override val converter: ResourceConverter<T, TE>,
+internal class ResourceSetVisibilityDescriptorAsyncImpl<TE: Any>(
+    override val converter: ResourceConverter<ResourceSetVisibility, TE>,
     override val resourceSetVisibilityDaoCompatAsync: ResourceSetVisibilityDaoCompatAsync<TE>
-): ResourceSetVisibilityDescriptorAsync<T, TE>
+): ResourceSetVisibilityDescriptorAsync<TE>
 
 /**
  * if [ResourceEquality] is not assigned, equality by [ResourceEquals] will be the default.
@@ -82,27 +74,51 @@ inline fun <reified T> defaultEquality(): ResourceEquality<T> {
     val type = typeOf<T>()
     if (type.isSubtypeOf(typeOf<ResourceEquals<T>>())) {
         @Suppress("UNCHECKED_CAST")
-        return resourceEquality { first, second ->
+        return { first, second ->
             (first as ResourceEquals<T>).resourceEqual(second)
         }
     } else {
-        return resourceEquality { first, second -> first == second }
+        return { first, second -> first == second }
     }
 }
 
 /**
  * a default [ResourceConverter] if the storage data and the used data are same.
  */
-inline fun <reified T> defaultConverter(): ResourceConverter<T, T> {
+fun <T> defaultConverter(): ResourceConverter<T, T> {
     return resourceSameConverter()
+}
+
+fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorSync(
+    type: KType,
+    contentType: EC,
+    equality: ResourceEquality<T>,
+    converter: ResourceConverter<T, TE>,
+    resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>
+): ResourceContentDescriptorSync<T, TE, EC> {
+    return ResourceContentDescriptorSyncImpl(
+        type, contentType, equality, converter, resourceContentDaoCompatSync
+    )
+}
+
+fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorAsync(
+    type: KType,
+    contentType: EC,
+    equality: ResourceEquality<T>,
+    converter: ResourceConverter<T, TE>,
+    resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>
+): ResourceContentDescriptorAsync<T, TE, EC> {
+    return ResourceContentDescriptorAsyncImpl(
+        type, contentType, equality, converter, resourceContentDaoCompatAsync
+    )
 }
 
 inline fun <reified T: ResourceContent, EC> resourceContentDescriptorSync(
     contentType: EC,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<T>,
-    equality: ResourceEquality<T> = defaultEquality()
+    noinline equality: ResourceEquality<T> = defaultEquality()
 ): ResourceContentDescriptorSync<T, T, EC> {
-    return ResourceContentDescriptorSyncImpl(
+    return resourceContentDescriptorSync(
         type = typeOf<T>(),
         contentType = contentType,
         equality = equality,
@@ -111,13 +127,13 @@ inline fun <reified T: ResourceContent, EC> resourceContentDescriptorSync(
     )
 }
 
-inline fun <reified T: ResourceContent, TE, EC> resourceContentDescriptorSyncWithConverter(
+inline fun <reified T: ResourceContent, TE: Any, EC> resourceContentDescriptorSyncWithConverter(
     contentType: EC,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>,
     converter: ResourceConverter<T, TE>,
-    equality: ResourceEquality<T> = defaultEquality(),
+    noinline equality: ResourceEquality<T> = defaultEquality(),
 ): ResourceContentDescriptorSync<T, TE, EC> {
-    return ResourceContentDescriptorSyncImpl(
+    return resourceContentDescriptorSync(
         type = typeOf<T>(),
         contentType = contentType,
         equality = equality,
@@ -129,9 +145,9 @@ inline fun <reified T: ResourceContent, TE, EC> resourceContentDescriptorSyncWit
 inline fun <reified T: ResourceContent, EC> resourceContentDescriptorAsync(
     contentType: EC,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<T>,
-    equality: ResourceEquality<T> = defaultEquality()
+    noinline equality: ResourceEquality<T> = defaultEquality()
 ): ResourceContentDescriptorAsync<T, T, EC> {
-    return ResourceContentDescriptorAsyncImpl(
+    return resourceContentDescriptorAsync(
         type = typeOf<T>(),
         contentType = contentType,
         equality = equality,
@@ -140,13 +156,13 @@ inline fun <reified T: ResourceContent, EC> resourceContentDescriptorAsync(
     )
 }
 
-inline fun <reified T: ResourceContent, TE, EC> resourceContentDescriptorAsyncWithConverter(
+inline fun <reified T: ResourceContent, TE: Any, EC> resourceContentDescriptorAsyncWithConverter(
     contentType: EC,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>,
     converter: ResourceConverter<T, TE>,
-    equality: ResourceEquality<T> = defaultEquality()
+    noinline equality: ResourceEquality<T> = defaultEquality()
 ): ResourceContentDescriptorAsync<T, TE, EC> {
-    return ResourceContentDescriptorAsyncImpl(
+    return resourceContentDescriptorAsync(
         type = typeOf<T>(),
         contentType = contentType,
         equality = equality,
@@ -154,175 +170,153 @@ inline fun <reified T: ResourceContent, TE, EC> resourceContentDescriptorAsyncWi
         resourceContentDaoCompatAsync = resourceContentDaoCompatAsync
     )
 }
-
-inline fun <reified T: ResourceSet<ES>, ES> resourceSetDescriptorSync(
-    resourceSetDaoCompatSync: ResourceSetDaoCompatSync<T>,
-): ResourceSetDescriptorSync<T, T, ES> {
+fun <ES> resourceSetDescriptorSync(
+    resourceSetDaoCompatSync: ResourceSetDaoCompatSync<ResourceSet<ES>>,
+): ResourceSetDescriptorSync<ResourceSet<ES>, ES> {
     return ResourceSetDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceSetDaoCompatSync = resourceSetDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceSet<ES>, TE, ES> resourceSetDescriptorSyncWithConverter(
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any, ES> resourceSetDescriptorSyncWithConverter(
+    converter: ResourceConverter<ResourceSet<ES>, TE>,
     resourceSetDaoCompatSync: ResourceSetDaoCompatSync<TE>
-): ResourceSetDescriptorSync<T, TE, ES> {
+): ResourceSetDescriptorSync<TE, ES> {
     return ResourceSetDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = converter,
         resourceSetDaoCompatSync = resourceSetDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceSet<ES>, ES> resourceSetDescriptorAsync(
-    setType: ES,
-    resourceSetDaoCompatAsync: ResourceSetDaoCompatAsync<T>
-): ResourceSetDescriptorAsync<T, T, ES> {
+fun <ES> resourceSetDescriptorAsync(
+    resourceSetDaoCompatAsync: ResourceSetDaoCompatAsync<ResourceSet<ES>>
+): ResourceSetDescriptorAsync<ResourceSet<ES>, ES> {
     return ResourceSetDescriptorAsyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceSetDaoCompatAsync = resourceSetDaoCompatAsync
     )
 }
 
-inline fun <reified T: ResourceSet<ES>, TE, ES> resourceSetDescriptorAsyncWithConverter(
-    setType: ES,
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any, ES> resourceSetDescriptorAsyncWithConverter(
+    converter: ResourceConverter<ResourceSet<ES>, TE>,
     resourceSetDaoCompatAsync: ResourceSetDaoCompatAsync<TE>
-): ResourceSetDescriptorAsync<T, TE, ES> {
+): ResourceSetDescriptorAsync<TE, ES> {
     return ResourceSetDescriptorAsyncImpl(
-        type = typeOf<T>(),
         converter = converter,
         resourceSetDaoCompatAsync = resourceSetDaoCompatAsync
     )
 }
 
-inline fun <reified T: ResourceLink<EC>, EC> resourceLinkDescriptorSync(
-    resourceLinkDaoCompatSync: ResourceLinkDaoCompatSync<EC, T>
-): ResourceLinkDescriptorSync<T, T, EC> {
+fun <EC> resourceLinkDescriptorSync(
+    resourceLinkDaoCompatSync: ResourceLinkDaoCompatSync<EC, ResourceLink<EC>>
+): ResourceLinkDescriptorSync<ResourceLink<EC>, EC> {
     return ResourceLinkDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceLinkDaoCompatSync = resourceLinkDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceLink<EC>, TE, EC> resourceLinkDescriptorSyncWithConverter(
-    contentType: EC,
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any, EC> resourceLinkDescriptorSyncWithConverter(
+    converter: ResourceConverter<ResourceLink<EC>, TE>,
     resourceLinkDaoCompatSync: ResourceLinkDaoCompatSync<EC, TE>
-): ResourceLinkDescriptorSync<T, TE, EC> {
+): ResourceLinkDescriptorSync<TE, EC> {
     return ResourceLinkDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = converter,
         resourceLinkDaoCompatSync = resourceLinkDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceLink<EC>, EC> resourceLinkDescriptorAsync(
-    contentType: EC,
-    resourceLinkDaoCompatAsync: ResourceLinkDaoCompatAsync<EC, T>
-): ResourceLinkDescriptorAsync<T, T, EC> {
+fun <EC> resourceLinkDescriptorAsync(
+    resourceLinkDaoCompatAsync: ResourceLinkDaoCompatAsync<EC, ResourceLink<EC>>
+): ResourceLinkDescriptorAsync<ResourceLink<EC>, EC> {
     return ResourceLinkDescriptorAsyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceLinkDaoCompatAsync = resourceLinkDaoCompatAsync
     )
 }
 
-inline fun <reified T: ResourceLink<EC>, TE, EC> resourceLinkDescriptorAsyncWithConverter(
-    contentType: EC,
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any, EC> resourceLinkDescriptorAsyncWithConverter(
+    converter: ResourceConverter<ResourceLink<EC>, TE>,
     resourceLinkDaoCompatAsync: ResourceLinkDaoCompatAsync<EC, TE>
-): ResourceLinkDescriptorAsync<T, TE, EC> {
+): ResourceLinkDescriptorAsync<TE, EC> {
     return ResourceLinkDescriptorAsyncImpl(
-        type = typeOf<T>(),
         converter = converter,
         resourceLinkDaoCompatAsync = resourceLinkDaoCompatAsync
     )
 }
 
-inline fun <reified T: ResourceTemporalLink<EC>, EC> resourceTemporalLinkDescriptorSync(
-    resourceTemporalLinkDaoCompatSync: ResourceTemporalLinkDaoCompatSync<EC, T>
-): ResourceTemporalLinkDescriptorSync<T, T, EC> {
+fun <EC> resourceTemporalLinkDescriptorSync(
+    resourceTemporalLinkDaoCompatSync: ResourceTemporalLinkDaoCompatSync<EC, ResourceTemporalLink<EC>>
+): ResourceTemporalLinkDescriptorSync<ResourceTemporalLink<EC>, EC> {
     return ResourceTemporalLinkDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceTemporalLinkDaoCompatSync = resourceTemporalLinkDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceTemporalLink<EC>, TE, EC> resourceTemporalLinkDescriptorSyncWithConverter(
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any, EC> resourceTemporalLinkDescriptorSyncWithConverter(
+    converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
     resourceTemporalLinkDaoCompatSync: ResourceTemporalLinkDaoCompatSync<EC, TE>
-): ResourceTemporalLinkDescriptorSync<T, TE, EC> {
+): ResourceTemporalLinkDescriptorSync<TE, EC> {
     return ResourceTemporalLinkDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = converter,
         resourceTemporalLinkDaoCompatSync = resourceTemporalLinkDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceTemporalLink<EC>, EC> resourceTemporalLinkDescriptorAsync(
-    resourceTemporalLinkDaoCompatAsync: ResourceTemporalLinkDaoCompatAsync<EC, T>
-): ResourceTemporalLinkDescriptorAsync<T, T, EC> {
+fun <EC> resourceTemporalLinkDescriptorAsync(
+    resourceTemporalLinkDaoCompatAsync: ResourceTemporalLinkDaoCompatAsync<EC, ResourceTemporalLink<EC>>
+): ResourceTemporalLinkDescriptorAsync<ResourceTemporalLink<EC>, EC> {
     return ResourceTemporalLinkDescriptorAsyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceTemporalLinkDaoCompatAsync = resourceTemporalLinkDaoCompatAsync
     )
 }
 
-inline fun <reified T: ResourceTemporalLink<EC>, TE, EC> resourceTemporalLinkDescriptorAsyncWithConverter(
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any, EC> resourceTemporalLinkDescriptorAsyncWithConverter(
+    converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
     resourceTemporalLinkDaoCompatAsync: ResourceTemporalLinkDaoCompatAsync<EC, TE>
-): ResourceTemporalLinkDescriptorAsync<T, TE, EC> {
+): ResourceTemporalLinkDescriptorAsync<TE, EC> {
     return ResourceTemporalLinkDescriptorAsyncImpl(
-        type = typeOf<T>(),
         converter = converter,
         resourceTemporalLinkDaoCompatAsync = resourceTemporalLinkDaoCompatAsync
     )
 }
 
-inline fun <reified T: ResourceSetVisibility> resourceSetVisibilityDescriptorSync(
-    resourceSetVisibilityDaoCompatSync: ResourceSetVisibilityDaoCompatSync<T>
-): ResourceSetVisibilityDescriptorSync<T, T> {
+fun resourceSetVisibilityDescriptorSync(
+    resourceSetVisibilityDaoCompatSync: ResourceSetVisibilityDaoCompatSync<ResourceSetVisibility>
+): ResourceSetVisibilityDescriptorSync<ResourceSetVisibility> {
     return ResourceSetVisibilityDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceSetVisibilityDaoCompatSync = resourceSetVisibilityDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceSetVisibility, TE> resourceSetVisibilityDescriptorSyncWithConverter(
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any> resourceSetVisibilityDescriptorSyncWithConverter(
+    converter: ResourceConverter<ResourceSetVisibility, TE>,
     resourceSetVisibilityDaoCompatSync: ResourceSetVisibilityDaoCompatSync<TE>
-): ResourceSetVisibilityDescriptorSync<T, TE> {
+): ResourceSetVisibilityDescriptorSync<TE> {
     return ResourceSetVisibilityDescriptorSyncImpl(
-        type = typeOf<T>(),
         converter = converter,
         resourceSetVisibilityDaoCompatSync = resourceSetVisibilityDaoCompatSync
     )
 }
 
-inline fun <reified T: ResourceSetVisibility> resourceSetVisibilityDescriptorAsync(
-    resourceSetVisibilityDaoCompatAsync: ResourceSetVisibilityDaoCompatAsync<T>
-): ResourceSetVisibilityDescriptorAsync<T, T> {
+fun resourceSetVisibilityDescriptorAsync(
+    resourceSetVisibilityDaoCompatAsync: ResourceSetVisibilityDaoCompatAsync<ResourceSetVisibility>
+): ResourceSetVisibilityDescriptorAsync<ResourceSetVisibility> {
     return ResourceSetVisibilityDescriptorAsyncImpl(
-        type = typeOf<T>(),
         converter = defaultConverter(),
         resourceSetVisibilityDaoCompatAsync = resourceSetVisibilityDaoCompatAsync
     )
 }
 
-inline fun <reified T: ResourceSetVisibility, TE> resourceSetVisibilityDescriptorAsyncWithConverter(
-    converter: ResourceConverter<T, TE>,
+fun <TE: Any> resourceSetVisibilityDescriptorAsyncWithConverter(
+    converter: ResourceConverter<ResourceSetVisibility, TE>,
     resourceSetVisibilityDaoCompatAsync: ResourceSetVisibilityDaoCompatAsync<TE>
-): ResourceSetVisibilityDescriptorAsync<T, TE> {
+): ResourceSetVisibilityDescriptorAsync<TE> {
     return ResourceSetVisibilityDescriptorAsyncImpl(
-        type =  typeOf<T>(),
         converter = converter,
         resourceSetVisibilityDaoCompatAsync = resourceSetVisibilityDaoCompatAsync
     )
