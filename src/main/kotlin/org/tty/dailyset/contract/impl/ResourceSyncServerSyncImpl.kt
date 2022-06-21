@@ -1,7 +1,6 @@
 package org.tty.dailyset.contract.impl
 
 import org.tty.dailyset.contract.bean.enums.InAction
-import org.tty.dailyset.contract.bean.enums.RelatingOption
 import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
 import org.tty.dailyset.contract.data.*
 import org.tty.dailyset.contract.declare.ResourceContent
@@ -43,18 +42,15 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
     override fun write(
         req: ApplyingReq<TC, EC>,
         timeWriting: LocalDateTime,
-        relatingOption: RelatingOption
-    ): Relating<ES> {
+    ): ResourceSet<ES> {
         val set = descriptorDaoHelper.readSet(req.setUid)
         require(set != null) { "set(${req.setUid} is not existed.)" }
 
         return inTransaction {
-            val relatings = req.typedResourcesApplying.map {
-                internalWriteContents(set, timeWriting, it, relatingOption)
+            req.typedResourcesApplying.map {
+                internalWriteContents(set, timeWriting, it)
             }
-            val relating = combines(relatings)
-            updateRelating(relating)
-            relating
+            updateResourceSet(set)
         }
     }
 
@@ -64,12 +60,12 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         uid: String,
         typedResourcesApplying: TypedResourcesApplying<TC, EC>,
         timeWriting: LocalDateTime,
-        relatingOption: RelatingOption
-    ): Relating<ES> {
+    ): ResourceSet<ES> {
         val set = descriptorDaoHelper.readSet(uid)
         require(set != null) { "set(${uid} is not existed.)" }
         return inTransaction {
-            internalWriteContents(set, timeWriting, typedResourcesApplying, relatingOption)
+            internalWriteContents(set, timeWriting, typedResourcesApplying)
+            updateResourceSet(set)
         }
     }
 
@@ -81,36 +77,27 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         return result!!
     }
 
-    private fun updateRelating(relating: Relating<ES>): Relating<ES> {
-        // write the value
-        val newSets = relating.sets
-            .map {
-                val newSet = it.increaseVersionCopy()
-                descriptorDaoHelper.applySet(newSet)
-                newSet
-            }
-
-        return Relating(newSets)
+    private fun updateResourceSet(set: ResourceSet<ES>): ResourceSet<ES> {
+        val newSet = set.increaseVersionCopy()
+        descriptorDaoHelper.applySet(newSet)
+        return newSet
     }
 
     private fun internalWriteContents(
         set: ResourceSet<ES>,
         timeWriting: LocalDateTime,
         typedResourcesApplying: TypedResourcesApplying<TC, EC>,
-        relatingOption: RelatingOption
-    ): Relating<ES> {
-        val relatingSets = mutableSetOf<ResourceSet<ES>>()
+    ) {
         val contentType = typedResourcesApplying.contentType
         typedResourcesApplying.resourceContentsIn.forEach {
             when(it.action) {
                 InAction.Single ->
-                    relatingSets.addAll(descriptorDaoHelper.applyContentSingle(set, contentType, it.resourceContent!!, timeWriting, relatingOption))
+                    descriptorDaoHelper.applyContentSingle(set, contentType, it.resourceContent!!, timeWriting)
                 InAction.Apply -> TODO("Not implemented yet.")
                 InAction.Remove -> TODO()
                 InAction.RemoveAll -> TODO()
             }
         }
-        return Relating(relatingSets.distinct())
     }
 
 }

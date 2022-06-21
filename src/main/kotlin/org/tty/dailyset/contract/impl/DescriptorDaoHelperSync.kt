@@ -1,12 +1,14 @@
 package org.tty.dailyset.contract.impl
 
-import org.tty.dailyset.contract.bean.enums.RelatingOption
-import org.tty.dailyset.contract.declare.*
+import org.tty.dailyset.contract.declare.ResourceContent
+import org.tty.dailyset.contract.declare.ResourceDefaults
+import org.tty.dailyset.contract.declare.ResourceLink
+import org.tty.dailyset.contract.declare.ResourceSet
 import org.tty.dailyset.contract.descriptor.ResourceContentDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceLinkDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceSetDescriptorSync
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 /**
  * as SqliteHelper, to simplify the operation of dao interact.
@@ -93,36 +95,26 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         contentDaoCompat.applies(contents.map { converter.convertTo(it) })
     }
 
-    fun applyContentSingle(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime, relatingOption: RelatingOption): List<ResourceSet<ES>> {
-        if (relatingOption == RelatingOption.Separate) {
-            val links = readLinks(set.uid, contentType)
-            val newLink = if (links.isEmpty()) {
-                ResourceLink(set.uid, contentType, assignedUid(content.uid),
-                    version = set.increasedVersion(),
-                    isRemoved = false,
-                    lastTick = timeWriting)
-            } else {
-                require(links.size == 1) { "single resource, but found more than 1 links." }
-                val firstLink = links.first()
-                require(firstLink.contentUid == content.uid || content.uid.isEmpty()) { "content uid is assigned, but it is differ from the link." }
-                firstLink.copy(
-                    version = set.increasedVersion(),
-                    isRemoved = false,
-                    lastTick = timeWriting
-                )
-            }
-            applyLinks(set.uid, contentType, listOf(newLink))
-            applyContents(contentType, contents = listOf(dynamicCopyByUid(content, newLink.contentUid)))
-            return listOf(set)
+    fun applyContentSingle(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
+        val links = readLinks(set.uid, contentType)
+        val newLink = if (links.isEmpty()) {
+            ResourceLink(set.uid, contentType, assignedUid(content.uid),
+                version = set.increasedVersion(),
+                isRemoved = false,
+                lastTick = timeWriting)
         } else {
-            throw IllegalArgumentException("RelatingOption.Relating not support single resource.")
+            require(links.size == 1) { "single resource, but found more than 1 links." }
+            val firstLink = links.first()
+            require(firstLink.contentUid == content.uid || content.uid.isEmpty()) { "content uid is assigned, but it is differ from the link." }
+            firstLink.copy(
+                version = set.increasedVersion(),
+                isRemoved = false,
+                lastTick = timeWriting
+            )
         }
+        applyLinks(set.uid, contentType, listOf(newLink))
+        applyContents(contentType, contents = listOf(dynamicCopyByUid(content, newLink.contentUid)))
     }
-
-    fun applyContentReplace(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime, relatingOption: RelatingOption): List<ResourceSet<ES>> {
-        TODO("not implemented yet.")
-    }
-
 
     fun contentTypes(): List<EC> {
         return contentDescriptors.map {
