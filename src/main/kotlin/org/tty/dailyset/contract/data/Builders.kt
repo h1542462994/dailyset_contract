@@ -58,7 +58,7 @@ class ApplyReqBuilder<out TC: ResourceContent, EC> {
     }
 }
 
-fun <TC: ResourceContent, ES, EC> applyingReq(
+fun <TC: ResourceContent, EC> applyingReq(
     uid: String,
     builderLambda: ApplyReqBuilder<TC, EC>.() -> Unit
 ): ApplyingReq<TC, EC> {

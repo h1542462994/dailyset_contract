@@ -1,4 +1,4 @@
-package org.tty.dailyset.contract.test.vocal
+package org.tty.dailyset.contract.test.vocal.memory
 
 import org.tty.dailyset.contract.dao.sync.ResourceTemporalLinkDaoCompatSync
 import org.tty.dailyset.contract.declare.LinkKey

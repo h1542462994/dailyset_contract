@@ -80,12 +80,15 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun <R> inTransaction(action: () -> R): R {
-        var result: R? = null
-        transactionSupport?.withTransaction {
+        var result: R ?= null
+        if (transactionSupport != null) {
+            transactionSupport.withTransaction { result = action() }
+        } else {
             result = action()
         }
-        return result!!
+        return result as R
     }
 
     private fun updateResourceSet(set: ResourceSet<ES>): ResourceSet<ES> {

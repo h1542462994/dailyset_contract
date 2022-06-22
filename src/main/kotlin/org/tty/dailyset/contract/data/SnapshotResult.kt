@@ -18,4 +18,11 @@ data class SnapshotResult<out TC: ResourceContent, ES, EC>(
      * typed resources.
      */
     val typedResources: List<TypedResources<TC, EC>>
-)
+
+) {
+
+    operator fun get(contentType: EC): TypedResources<TC, EC> {
+        return typedResources.find { it.contentType == contentType }
+            ?: TypedResources(contentType, listOf())
+    }
+}

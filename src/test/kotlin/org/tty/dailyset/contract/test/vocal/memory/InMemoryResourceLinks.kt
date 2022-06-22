@@ -1,8 +1,9 @@
-package org.tty.dailyset.contract.test.vocal
+package org.tty.dailyset.contract.test.vocal.memory
 
 import org.tty.dailyset.contract.dao.sync.ResourceLinkDaoCompatSync
 import org.tty.dailyset.contract.declare.LinkKey
 import org.tty.dailyset.contract.declare.ResourceLink
+import org.tty.dailyset.contract.test.formatTable
 
 class InMemoryResourceLinks<EC>(
     private val internalStorage: MutableMap<LinkKey<EC>, ResourceLink<EC>> = mutableMapOf()
@@ -18,6 +19,16 @@ class InMemoryResourceLinks<EC>(
             internalStorage[it.key] = it
         }
         return links.size
+    }
+
+    override fun toString(): String {
+        return formatTable(
+            "ResourceLink", internalStorage.values,
+            title = listOf("uid", "type", "contentUid", "version", "remove", "time"),
+            selector = {
+                listOf(it.setUid, it.contentType, it.contentUid, it.version, it.isRemoved, it.lastTick)
+            }
+        ).toString()
     }
 
 }

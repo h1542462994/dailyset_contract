@@ -59,9 +59,9 @@ class ResourceSyncBuilderSyncImpl<TC: ResourceContent, ES, EC>: ResourceSyncBuil
         val descriptorSet = DescriptorSetSync(
             setDescriptor = setDescriptor!!,
             linkDescriptor = linkDescriptor!!,
-            temporalLinkDescriptor = temporalLinkDescriptor!!,
+            temporalLinkDescriptor = null,
             contentDescriptors = contentDescriptors,
-            setVisibilityDescriptor = setVisibilityDescriptor!!
+            setVisibilityDescriptor = null
         )
         return ResourceSyncServerSyncImpl(descriptorSet, transactionSupport)
     }

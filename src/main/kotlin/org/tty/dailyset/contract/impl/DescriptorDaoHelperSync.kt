@@ -1,7 +1,9 @@
 package org.tty.dailyset.contract.impl
 
 import org.tty.dailyset.contract.bean.enums.InAction
+import org.tty.dailyset.contract.dao.sync.ResourceContentDaoCompatSync
 import org.tty.dailyset.contract.declare.*
+import org.tty.dailyset.contract.descriptor.ResourceContentDescriptor
 import org.tty.dailyset.contract.descriptor.ResourceContentDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceLinkDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceSetDescriptorSync
@@ -16,14 +18,9 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 ) {
 
     // FIXME: unsafe typecast.
-    @Suppress("UNCHECKED_CAST")
     private val setDescriptor = descriptorSetSync.setDescriptor as (ResourceSetDescriptorSync<Any, ES>)
-    @Suppress("UNCHECKED_CAST")
     private val linkDescriptor = descriptorSetSync.linkDescriptor as (ResourceLinkDescriptorSync<Any, EC>)
-    @Suppress("UNCHECKED_CAST")
-    private val contentDescriptors = descriptorSetSync.contentDescriptors.map {
-        it as ResourceContentDescriptorSync<out TC, Any, EC>
-    }
+    private val contentDescriptors = descriptorSetSync.contentDescriptors
 
     fun readSet(uid: String): ResourceSet<ES>? {
         val setDaoCompat = setDescriptor.resourceSetDaoCompatSync
@@ -75,7 +72,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             val contentType = links.first().contentType
             val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
             val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
-            val converter = contentDescriptor.converter
+            val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
             val linkedUids = links.filter { !it.isRemoved }.map { it.contentUid }
             val contents = contentDaoCompat.findAllByUids(linkedUids)
             contents.map {
@@ -87,8 +84,8 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
     private fun applyContents(contentType: EC, contents: List<TC>) {
         val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
-        val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
-        val converter = contentDescriptor.converter
+        val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync as ResourceContentDaoCompatSync<Any>
+        val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
 
         contentDaoCompat.applies(contents.map { converter.convertTo(it) })
     }
@@ -126,7 +123,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         val contentDescriptor = contentDescriptor(contentType)
 
         val uidLessContents = contents.filter { it.uid.isEmpty() }
-        val uidFulContents = contents.minus(uidLessContents)
+        val uidFulContents = contents.filter { it.uid.isNotEmpty() }
 
         val contentResourceDiff = ResourceDiff(
             sourceValues = existedContents,
@@ -148,8 +145,8 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             applyContents(contentType, contents2)
             applyLinks(set.uid, contentType, addContents.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), false, timeWriting) })
 
-            val targetValues = contentResourceDiff.sameValues.map { it.targetValue }
             // same replace
+            val targetValues = uidResourceDiff.sameValues.map { it.targetValue }
             applyContents(contentType, targetValues)
             applyLinks(set.uid, contentType, targetValues.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), false, timeWriting) })
         }
@@ -162,8 +159,8 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
         if (action == InAction.Remove) {
             // remove particular elements
-            val uids = contentResourceDiff.sameValues.map { it.sourceValue.uid }
-            val uids2 = uidResourceDiff.sameValues.map { it.sourceValue.uid }
+            val uids = contentResourceDiff.removeValues.map { it.uid }
+            val uids2 = uidResourceDiff.removeValues.map { it.uid }
             val removeUids = uids.plus(uids2)
 
             applyLinks(set.uid, contentType, removeUids.map { ResourceLink(set.uid, contentType, it, set.increasedVersion(), true, timeWriting) })
@@ -193,7 +190,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         }
     }
 
-    private fun contentDescriptor(contentType: EC): ResourceContentDescriptorSync<out TC, Any, EC> {
+    private fun contentDescriptor(contentType: EC): ResourceContentDescriptorSync<out TC, *, EC> {
         return contentDescriptors.first { it.contentType == contentType }
     }
 

@@ -1,7 +1,8 @@
-package org.tty.dailyset.contract.test.vocal
+package org.tty.dailyset.contract.test.vocal.memory
 
 import org.tty.dailyset.contract.dao.sync.ResourceContentDaoCompatSync
 import org.tty.dailyset.contract.declare.ResourceContent
+import org.tty.dailyset.contract.test.vocal.bean.DisplayProviders
 
 class InMemoryResourceContents<T: ResourceContent>(
     private val internalStorage: MutableMap<String, T> = mutableMapOf()
@@ -17,5 +18,9 @@ class InMemoryResourceContents<T: ResourceContent>(
         return uids.mapNotNull {
             internalStorage[it]
         }
+    }
+
+    override fun toString(): String {
+        return DisplayProviders.provide(internalStorage.values).toString()
     }
 }

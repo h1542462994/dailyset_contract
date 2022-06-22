@@ -7,7 +7,7 @@ interface Key<out T> {
     fun key(): T
 }
 
-sealed interface KeySelector< T, out TK> {
+interface KeySelector< T, out TK> {
     fun selectKey(value: @UnsafeVariance T): TK
 }
 

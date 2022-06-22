@@ -13,7 +13,6 @@ import kotlin.reflect.KType
  * @see ResourceContent
  */
 sealed interface ResourceContentDescriptor<T: ResourceContent, TE: Any, EC> {
-    val type: KType
     val contentType: EC
     val keySelector: KeySelector<T, Any>
     val converter: ResourceConverter<T, TE>
