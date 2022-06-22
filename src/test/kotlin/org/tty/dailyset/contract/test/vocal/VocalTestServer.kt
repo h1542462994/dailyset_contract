@@ -91,7 +91,7 @@ class VocalTestServer {
     fun testElementApply3() {
         println("=== element apply3:: ===")
 
-        val song = Song(ResourceDefaults.EMPTY_UID, "NEO_SKY, NEO MAP!", "_id_nijigasaki", "Des @V3", 1001)
+        val song = Song(ResourceDefaults.EMPTY_UID, "全速ドリーマー", "_id_nijigasaki", "Des @V3", 1001)
         vocalSyncServer.write(applyingReq("my_vocal") {
             apply(VocalContentType.Song, song)
         }, LocalDateTime.now())

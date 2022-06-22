@@ -147,6 +147,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
             // same replace
             val targetValues = uidResourceDiff.sameValues.map { it.targetValue }
+                .plus(contentResourceDiff.sameValues.map { it.targetValue.copyByUid(it.sourceValue.uid) as TC })
             applyContents(contentType, targetValues)
             applyLinks(set.uid, contentType, targetValues.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), false, timeWriting) })
         }
