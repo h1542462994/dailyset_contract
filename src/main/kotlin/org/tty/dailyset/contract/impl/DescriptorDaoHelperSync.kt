@@ -116,6 +116,18 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         applyContents(contentType, contents = listOf(dynamicCopyByUid(content, newLink.contentUid)))
     }
 
+    fun applyContentApply(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
+
+    }
+
+    fun applyContentRemove(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
+
+    }
+
+    fun applyContentRemoveAll(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
+
+    }
+
     fun contentTypes(): List<EC> {
         return contentDescriptors.map {
             it.contentType

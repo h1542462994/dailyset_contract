@@ -89,15 +89,43 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         typedResourcesApplying: TypedResourcesApplying<TC, EC>,
     ) {
         val contentType = typedResourcesApplying.contentType
-        typedResourcesApplying.resourceContentsIn.forEach {
-            when(it.action) {
-                InAction.Single ->
-                    descriptorDaoHelper.applyContentSingle(set, contentType, it.resourceContent!!, timeWriting)
-                InAction.Apply -> TODO("Not implemented yet.")
-                InAction.Remove -> TODO()
-                InAction.RemoveAll -> TODO()
+
+        val actionList = mutableListOf<Pair<InAction, MutableList<TC>>>()
+
+        for(index in typedResourcesApplying.resourceContentsIn.indices) {
+            val resourceContentIn = typedResourcesApplying.resourceContentsIn[index]
+            if (resourceContentIn.action == InAction.Single) {
+                require(actionList.isEmpty() && index == typedResourcesApplying.resourceContentsIn.size - 1) {
+                    "you could only InAction.Single in single value and other action should not involved."
+                }
+                actionList.add(Pair(InAction.Single, mutableListOf(resourceContentIn.resourceContent!!)))
+            } else if (resourceContentIn.action == InAction.RemoveAll) {
+                actionList.clear()
+                actionList.add(Pair(InAction.RemoveAll, mutableListOf()))
+            } else if (resourceContentIn.action == InAction.Apply) {
+                if (actionList.isEmpty() || actionList.last().first != InAction.Apply) {
+                    actionList.add(Pair(InAction.Apply, mutableListOf(resourceContentIn.resourceContent!!)))
+                } else {
+                    actionList.last().second.add(resourceContentIn.resourceContent!!)
+                }
+            } else if (resourceContentIn.action == InAction.Remove) {
+                if (actionList.isEmpty() || actionList.last().first != InAction.Remove) {
+                    actionList.add(Pair(InAction.Remove, mutableListOf(resourceContentIn.resourceContent!!)))
+                } else {
+                    actionList.last().second.add(resourceContentIn.resourceContent!!)
+                }
             }
         }
+
+        actionList.forEach {
+            when(it.first) {
+                InAction.Single -> descriptorDaoHelper.applyContentSingle(set, contentType, it.second.first(), timeWriting)
+                InAction.RemoveAll -> descriptorDaoHelper.applyContentRemoveAll(set, contentType, timeWriting)
+                InAction.Apply -> descriptorDaoHelper.applyContentApply(set, contentType, it.second, timeWriting)
+                InAction.Remove -> descriptorDaoHelper.applyContentRemove(set, contentType, it.second, timeWriting)
+            }
+        }
+
     }
 
 }
