@@ -2,10 +2,9 @@ package org.tty.dailyset.contract.data
 
 import org.tty.dailyset.contract.bean.enums.InAction
 import org.tty.dailyset.contract.declare.ResourceContent
-import org.tty.dailyset.contract.declare.ResourceSet
 
-class ApplyingResultBuilder<out TC: ResourceContent, ES, EC> {
-    private val store: MutableMap<EC, MutableList<ResourceContentIn< @UnsafeVariance TC>>> = mutableMapOf()
+class ApplyReqBuilder<out TC: ResourceContent, EC> {
+    private val store: MutableMap<EC, MutableList<ResourceContentIn<@UnsafeVariance TC>>> = mutableMapOf()
 
     fun remove(contentType: EC, content: @UnsafeVariance TC) {
         val list = store.getOrPut(contentType) { mutableListOf() }
@@ -32,6 +31,18 @@ class ApplyingResultBuilder<out TC: ResourceContent, ES, EC> {
         list.addAll(contents.map { ResourceContentIn(InAction.Apply, it) })
     }
 
+
+
+    fun replace(contentType: EC, content: @UnsafeVariance TC) {
+        val list = store.getOrPut(contentType) { mutableListOf() }
+        list.add(ResourceContentIn(InAction.Replace, content))
+    }
+
+    fun replaces(contentType: EC, contents: List<@UnsafeVariance TC>) {
+        val list = store.getOrPut(contentType) { mutableListOf() }
+        list.addAll(contents.map { ResourceContentIn(InAction.Replace, it) })
+    }
+
     fun single(contentType: EC, content: @UnsafeVariance TC) {
         val list = store.getOrPut(contentType) { mutableListOf() }
         list.add(ResourceContentIn(InAction.Single, content))
@@ -47,11 +58,11 @@ class ApplyingResultBuilder<out TC: ResourceContent, ES, EC> {
     }
 }
 
-fun <TC: ResourceContent, ES, EC> applyingResult(
+fun <TC: ResourceContent, ES, EC> applyingReq(
     uid: String,
-    builderLambda: ApplyingResultBuilder<TC, ES, EC>.() -> Unit
+    builderLambda: ApplyReqBuilder<TC, EC>.() -> Unit
 ): ApplyingReq<TC, EC> {
-    val builder = ApplyingResultBuilder<TC, ES, EC>()
+    val builder = ApplyReqBuilder<TC, EC>()
     builder.builderLambda()
     return builder.build(uid)
 }

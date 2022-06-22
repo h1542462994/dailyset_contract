@@ -9,6 +9,8 @@ import java.time.LocalDateTime
 
 interface ResourceSyncServerSync<TC: ResourceContent, ES, EC>: ResourceSyncModuleSync<TC, ES, EC> {
 
+    fun createIfAbsent(set: ResourceSet<ES>): ResourceSet<ES>
+
     /**
      * write a snapshot result to the sync module. it often used by writing server handled data.
      * if the written [ResourceSet] is not existed,
@@ -16,5 +18,7 @@ interface ResourceSyncServerSync<TC: ResourceContent, ES, EC>: ResourceSyncModul
     fun write(req: ApplyingReq<TC, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
 
     fun writeContents(uid: String, typedResourcesApplying: TypedResourcesApplying<TC, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
+
+
 
 }

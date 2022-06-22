@@ -1,8 +1,8 @@
 package org.tty.dailyset.contract.descriptor
 
+import org.tty.dailyset.contract.declare.KeySelector
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceConverter
-import org.tty.dailyset.contract.declare.ResourceEquality
 import kotlin.reflect.KType
 
 /**
@@ -15,6 +15,6 @@ import kotlin.reflect.KType
 sealed interface ResourceContentDescriptor<T: ResourceContent, TE: Any, EC> {
     val type: KType
     val contentType: EC
-    val equality: ResourceEquality<T>
+    val keySelector: KeySelector<T, Any>
     val converter: ResourceConverter<T, TE>
 }

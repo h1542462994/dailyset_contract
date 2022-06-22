@@ -1,9 +1,7 @@
 package org.tty.dailyset.contract.impl
 
-import org.tty.dailyset.contract.declare.ResourceContent
-import org.tty.dailyset.contract.declare.ResourceDefaults
-import org.tty.dailyset.contract.declare.ResourceLink
-import org.tty.dailyset.contract.declare.ResourceSet
+import org.tty.dailyset.contract.bean.enums.InAction
+import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.descriptor.ResourceContentDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceLinkDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceSetDescriptorSync
@@ -95,6 +93,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         contentDaoCompat.applies(contents.map { converter.convertTo(it) })
     }
 
+
     fun applyContentSingle(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
         val links = readLinks(set.uid, contentType)
         val newLink = if (links.isEmpty()) {
@@ -116,22 +115,86 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         applyContents(contentType, contents = listOf(dynamicCopyByUid(content, newLink.contentUid)))
     }
 
-    fun applyContentApply(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
+    @Suppress("UNCHECKED_CAST")
+    fun applyContentUnion(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime, action: InAction) {
+        require(action == InAction.Apply || action == InAction.Remove || action == InAction.Replace) {
+            "other action is not supported."
+        }
 
+        val links = readLinks(set.uid, contentType)
+        val existedContents = readContents(links)
+        val contentDescriptor = contentDescriptor(contentType)
+
+        val uidLessContents = contents.filter { it.uid.isEmpty() }
+        val uidFulContents = contents.minus(uidLessContents)
+
+        val contentResourceDiff = ResourceDiff(
+            sourceValues = existedContents,
+            targetValues = uidLessContents,
+            keySelector = contentDescriptor.keySelector as KeySelector<TC, Any>
+        )
+
+        val uidResourceDiff = ResourceDiff(
+            sourceValues = existedContents,
+            targetValues = uidFulContents,
+            keySelector = ProvideKeySelector(func = { it.uid })
+        )
+
+        if (action == InAction.Apply || action == InAction.Replace) {
+            // addition
+            val contents1 = contentResourceDiff.addValues.map { it.copyByUid(assignedUid(it.uid)) }
+            val contents2 = uidResourceDiff.addValues
+            val addContents = contents1.plus(contents2)
+            applyContents(contentType, contents2)
+            applyLinks(set.uid, contentType, addContents.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), false, timeWriting) })
+
+            val targetValues = contentResourceDiff.sameValues.map { it.targetValue }
+            // same replace
+            applyContents(contentType, targetValues)
+            applyLinks(set.uid, contentType, targetValues.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), false, timeWriting) })
+        }
+
+        if (action == InAction.Replace) {
+            // remove not occurred values
+            val removes = contentResourceDiff.removeValues.intersect(uidResourceDiff.removeValues.toSet())
+            applyLinks(set.uid, contentType, removes.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), true, timeWriting) })
+        }
+
+        if (action == InAction.Remove) {
+            // remove particular elements
+            val uids = contentResourceDiff.sameValues.map { it.sourceValue.uid }
+            val uids2 = uidResourceDiff.sameValues.map { it.sourceValue.uid }
+            val removeUids = uids.plus(uids2)
+
+            applyLinks(set.uid, contentType, removeUids.map { ResourceLink(set.uid, contentType, it, set.increasedVersion(), true, timeWriting) })
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun applyContentApply(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
+        applyContentUnion(set, contentType, contents, timeWriting, InAction.Apply)
+    }
+
+    fun applyContentReplace(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
+        applyContentUnion(set, contentType, contents, timeWriting, InAction.Apply)
     }
 
     fun applyContentRemove(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
-
+        applyContentUnion(set, contentType, contents, timeWriting, InAction.Remove)
     }
 
     fun applyContentRemoveAll(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
-
+        TODO("not implemented yet.")
     }
 
     fun contentTypes(): List<EC> {
         return contentDescriptors.map {
             it.contentType
         }
+    }
+
+    private fun contentDescriptor(contentType: EC): ResourceContentDescriptorSync<out TC, Any, EC> {
+        return contentDescriptors.first { it.contentType == contentType }
     }
 
     /**
@@ -145,12 +208,6 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
     @Suppress("UNCHECKED_CAST")
     private fun dynamicCopyByUid(content: TC, uid: String): TC {
-//        val type = content::class
-//        val func = type.memberFunctions.find { it.name == "copy" }
-//        requireNotNull(func)
-//        val parameter = func.parameters.find { it.name == "uid" }
-//        requireNotNull(parameter)
-//        return func.callBy(mapOf(parameter to uid)) as TC
 
         return if (content.uid == uid) {
             content

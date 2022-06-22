@@ -3,6 +3,7 @@ package org.tty.dailyset.contract.declare
 import org.tty.dailyset.contract.bean.enums.TemporalAction
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import org.tty.dailyset.contract.bean.serializer.LocalDateTimeIso8601Serializer
 
 /**
@@ -16,4 +17,8 @@ data class ResourceTemporalLink<EC>(
     val action: TemporalAction,
     @Serializable(with = LocalDateTimeIso8601Serializer::class)
     val lastTick: LocalDateTime
-)
+) {
+
+    @Transient
+    val key: LinkKey<EC> = LinkKey(setUid, contentType, contentUid)
+}

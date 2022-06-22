@@ -4,5 +4,6 @@ enum class InAction {
     Apply,
     Remove,
     RemoveAll,
-    Single
+    Single,
+    Replace
 }

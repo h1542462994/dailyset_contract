@@ -4,6 +4,7 @@ import org.tty.dailyset.contract.bean.enums.InAction
 import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
 import org.tty.dailyset.contract.data.*
 import org.tty.dailyset.contract.declare.ResourceContent
+import org.tty.dailyset.contract.declare.ResourceDefaults
 import org.tty.dailyset.contract.declare.ResourceSet
 import org.tty.dailyset.contract.module.sync.ResourceSyncServerSync
 import java.time.LocalDateTime
@@ -39,6 +40,17 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         )
     }
 
+    override fun createIfAbsent(set: ResourceSet<ES>): ResourceSet<ES> {
+        val existedSet = readBase(set.uid)
+        if (existedSet != null) {
+            return existedSet
+        } else {
+            val newSet = set.copy(version = ResourceDefaults.VERSION_INIT)
+            descriptorDaoHelper.applySet(newSet)
+            return newSet
+        }
+    }
+
     override fun write(
         req: ApplyingReq<TC, EC>,
         timeWriting: LocalDateTime,
@@ -53,7 +65,6 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
             updateResourceSet(set)
         }
     }
-
 
 
     override fun writeContents(
@@ -92,25 +103,40 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
 
         val actionList = mutableListOf<Pair<InAction, MutableList<TC>>>()
 
+        var replaceMode = false
+
         for(index in typedResourcesApplying.resourceContentsIn.indices) {
             val resourceContentIn = typedResourcesApplying.resourceContentsIn[index]
             if (resourceContentIn.action == InAction.Single) {
                 require(actionList.isEmpty() && index == typedResourcesApplying.resourceContentsIn.size - 1) {
-                    "you could only InAction.Single in single value and other action should not involved."
+                    "other action is not supported in InAction.Single mode. or have multi elements."
                 }
                 actionList.add(Pair(InAction.Single, mutableListOf(resourceContentIn.resourceContent!!)))
             } else if (resourceContentIn.action == InAction.RemoveAll) {
+                require(!replaceMode) { "other action is not supported in InAction.Replace mode." }
                 actionList.clear()
                 actionList.add(Pair(InAction.RemoveAll, mutableListOf()))
             } else if (resourceContentIn.action == InAction.Apply) {
+                require(!replaceMode) { "other action is not supported in InAction.Replace mode." }
                 if (actionList.isEmpty() || actionList.last().first != InAction.Apply) {
                     actionList.add(Pair(InAction.Apply, mutableListOf(resourceContentIn.resourceContent!!)))
                 } else {
                     actionList.last().second.add(resourceContentIn.resourceContent!!)
                 }
             } else if (resourceContentIn.action == InAction.Remove) {
+                require(!replaceMode) { "other action is not supported in InAction.Replace mode." }
                 if (actionList.isEmpty() || actionList.last().first != InAction.Remove) {
                     actionList.add(Pair(InAction.Remove, mutableListOf(resourceContentIn.resourceContent!!)))
+                } else {
+                    actionList.last().second.add(resourceContentIn.resourceContent!!)
+                }
+            } else if (resourceContentIn.action == InAction.Replace) {
+                require(actionList.isEmpty() || actionList.last().first == InAction.Replace) {
+                    "other action is not supported in InAction.Replace mode."
+                }
+                replaceMode = true
+                if (actionList.isEmpty()) {
+                    actionList.add(Pair(InAction.Replace, mutableListOf(resourceContentIn.resourceContent!!)))
                 } else {
                     actionList.last().second.add(resourceContentIn.resourceContent!!)
                 }
@@ -123,6 +149,7 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
                 InAction.RemoveAll -> descriptorDaoHelper.applyContentRemoveAll(set, contentType, timeWriting)
                 InAction.Apply -> descriptorDaoHelper.applyContentApply(set, contentType, it.second, timeWriting)
                 InAction.Remove -> descriptorDaoHelper.applyContentRemove(set, contentType, it.second, timeWriting)
+                InAction.Replace -> descriptorDaoHelper.applyContentReplace(set, contentType, it.second, timeWriting)
             }
         }
 

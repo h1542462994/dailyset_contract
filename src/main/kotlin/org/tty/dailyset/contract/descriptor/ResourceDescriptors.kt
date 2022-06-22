@@ -8,13 +8,12 @@ import org.tty.dailyset.contract.dao.async.*
 import org.tty.dailyset.contract.dao.sync.*
 import org.tty.dailyset.contract.declare.*
 import kotlin.reflect.KType
-import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.typeOf
 
 internal class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE: Any, EC>(
     override val type: KType,
     override val contentType: EC,
-    override val equality: ResourceEquality<T>,
+    override val keySelector: KeySelector<T, Any>,
     override val converter: ResourceConverter<T, TE>,
     override val resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>
 ): ResourceContentDescriptorSync<T, TE, EC>
@@ -22,7 +21,7 @@ internal class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE: Any, EC
 internal class ResourceContentDescriptorAsyncImpl<T: ResourceContent, TE: Any, EC>(
     override val type: KType,
     override val contentType: EC,
-    override val equality: ResourceEquality<T>,
+    override val keySelector: KeySelector<T, Any>,
     override val converter: ResourceConverter<T, TE>,
     override val resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>
 ): ResourceContentDescriptorAsync<T, TE, EC>
@@ -68,21 +67,6 @@ internal class ResourceSetVisibilityDescriptorAsyncImpl<TE: Any>(
 ): ResourceSetVisibilityDescriptorAsync<TE>
 
 /**
- * if [ResourceEquality] is not assigned, equality by [ResourceEquals] will be the default.
- */
-inline fun <reified T> defaultEquality(): ResourceEquality<T> {
-    val type = typeOf<T>()
-    if (type.isSubtypeOf(typeOf<ResourceEquals<T>>())) {
-        @Suppress("UNCHECKED_CAST")
-        return { first, second ->
-            (first as ResourceEquals<T>).resourceEqual(second)
-        }
-    } else {
-        return { first, second -> first == second }
-    }
-}
-
-/**
  * a default [ResourceConverter] if the storage data and the used data are same.
  */
 fun <T> defaultConverter(): ResourceConverter<T, T> {
@@ -92,36 +76,36 @@ fun <T> defaultConverter(): ResourceConverter<T, T> {
 fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorSync(
     type: KType,
     contentType: EC,
-    equality: ResourceEquality<T>,
+    keySelector: KeySelector<T, Any> = DefaultKeySelector(),
     converter: ResourceConverter<T, TE>,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>
 ): ResourceContentDescriptorSync<T, TE, EC> {
     return ResourceContentDescriptorSyncImpl(
-        type, contentType, equality, converter, resourceContentDaoCompatSync
+        type, contentType, keySelector, converter, resourceContentDaoCompatSync
     )
 }
 
 fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorAsync(
     type: KType,
     contentType: EC,
-    equality: ResourceEquality<T>,
+    keySelector: KeySelector<T, Any> = DefaultKeySelector(),
     converter: ResourceConverter<T, TE>,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>
 ): ResourceContentDescriptorAsync<T, TE, EC> {
     return ResourceContentDescriptorAsyncImpl(
-        type, contentType, equality, converter, resourceContentDaoCompatAsync
+        type, contentType, keySelector, converter, resourceContentDaoCompatAsync
     )
 }
 
 inline fun <reified T: ResourceContent, EC> resourceContentDescriptorSync(
     contentType: EC,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<T>,
-    noinline equality: ResourceEquality<T> = defaultEquality()
+    keySelector: KeySelector<T, Any> = DefaultKeySelector()
 ): ResourceContentDescriptorSync<T, T, EC> {
     return resourceContentDescriptorSync(
         type = typeOf<T>(),
         contentType = contentType,
-        equality = equality,
+        keySelector = keySelector,
         converter = defaultConverter(),
         resourceContentDaoCompatSync = resourceContentDaoCompatSync
     )
@@ -131,12 +115,12 @@ inline fun <reified T: ResourceContent, TE: Any, EC> resourceContentDescriptorSy
     contentType: EC,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>,
     converter: ResourceConverter<T, TE>,
-    noinline equality: ResourceEquality<T> = defaultEquality(),
+    keySelector: KeySelector<T, Any> = DefaultKeySelector()
 ): ResourceContentDescriptorSync<T, TE, EC> {
     return resourceContentDescriptorSync(
         type = typeOf<T>(),
         contentType = contentType,
-        equality = equality,
+        keySelector = keySelector,
         converter = converter,
         resourceContentDaoCompatSync = resourceContentDaoCompatSync
     )
@@ -145,12 +129,12 @@ inline fun <reified T: ResourceContent, TE: Any, EC> resourceContentDescriptorSy
 inline fun <reified T: ResourceContent, EC> resourceContentDescriptorAsync(
     contentType: EC,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<T>,
-    noinline equality: ResourceEquality<T> = defaultEquality()
+    keySelector: KeySelector<T, Any> = DefaultKeySelector()
 ): ResourceContentDescriptorAsync<T, T, EC> {
     return resourceContentDescriptorAsync(
         type = typeOf<T>(),
         contentType = contentType,
-        equality = equality,
+        keySelector = keySelector,
         converter = defaultConverter(),
         resourceContentDaoCompatAsync = resourceContentDaoCompatAsync
     )
@@ -160,12 +144,12 @@ inline fun <reified T: ResourceContent, TE: Any, EC> resourceContentDescriptorAs
     contentType: EC,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>,
     converter: ResourceConverter<T, TE>,
-    noinline equality: ResourceEquality<T> = defaultEquality()
+    keySelector: KeySelector<T, Any> = DefaultKeySelector()
 ): ResourceContentDescriptorAsync<T, TE, EC> {
     return resourceContentDescriptorAsync(
         type = typeOf<T>(),
         contentType = contentType,
-        equality = equality,
+        keySelector = keySelector,
         converter = converter,
         resourceContentDaoCompatAsync = resourceContentDaoCompatAsync
     )
