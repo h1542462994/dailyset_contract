@@ -1,4 +1,4 @@
-package org.tty.dailyset.contract.bean.annotation
+package org.tty.dailyset.contract.annotation
 
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)

@@ -1,7 +1,6 @@
 package org.tty.dailyset.contract.data
 
 import org.tty.dailyset.contract.declare.ResourceContent
-import org.tty.dailyset.contract.bean.enums.InAction
 import kotlinx.serialization.Serializable
 
 /**

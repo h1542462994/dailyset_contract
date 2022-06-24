@@ -1,6 +1,6 @@
 package org.tty.dailyset.contract.module.sync
 
-import org.tty.dailyset.contract.bean.annotation.UseTransaction
+import org.tty.dailyset.contract.annotation.UseTransaction
 import org.tty.dailyset.contract.data.ApplyingReq
 import org.tty.dailyset.contract.data.SnapshotResult
 import org.tty.dailyset.contract.data.TypedResources

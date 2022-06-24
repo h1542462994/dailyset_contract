@@ -1,4 +1,4 @@
-package org.tty.dailyset.contract.bean.enums
+package org.tty.dailyset.contract.declare
 
 /**
  * temporal action used by temporal link.

@@ -1,6 +1,5 @@
 package org.tty.dailyset.contract.data
 
-import org.tty.dailyset.contract.bean.enums.InAction
 import org.tty.dailyset.contract.declare.ResourceContent
 
 data class ResultContentInGroup<out TC: ResourceContent>(

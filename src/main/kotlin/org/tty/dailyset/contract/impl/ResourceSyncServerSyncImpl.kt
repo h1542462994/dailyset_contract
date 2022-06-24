@@ -1,6 +1,6 @@
 package org.tty.dailyset.contract.impl
 
-import org.tty.dailyset.contract.bean.annotation.UseTransaction
+import org.tty.dailyset.contract.annotation.UseTransaction
 import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
 import org.tty.dailyset.contract.dao.withTransactionR
 import org.tty.dailyset.contract.data.*

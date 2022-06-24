@@ -2,7 +2,7 @@ package org.tty.dailyset.contract.data
 
 import org.tty.dailyset.contract.declare.ResourceDefaults
 
-class UserContext(
+open class UserContext(
     val userUid: String
 ) {
     companion object {

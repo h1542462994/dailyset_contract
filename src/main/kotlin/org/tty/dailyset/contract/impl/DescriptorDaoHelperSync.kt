@@ -1,12 +1,10 @@
 package org.tty.dailyset.contract.impl
 
-import org.tty.dailyset.contract.bean.enums.InAction
+import org.tty.dailyset.contract.data.InAction
 import org.tty.dailyset.contract.dao.sync.ResourceContentDaoCompatSync
 import org.tty.dailyset.contract.data.ResourceContentUn
 import org.tty.dailyset.contract.declare.*
-import org.tty.dailyset.contract.descriptor.ResourceContentDescriptorSync
-import org.tty.dailyset.contract.descriptor.ResourceLinkDescriptorSync
-import org.tty.dailyset.contract.descriptor.ResourceSetDescriptorSync
+import org.tty.dailyset.contract.descriptor.*
 import java.time.LocalDateTime
 import java.util.*
 
@@ -20,8 +18,15 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     // FIXME: unsafe typecast.
     @Suppress("UNCHECKED_CAST")
     private val setDescriptor = descriptorSetSync.setDescriptor as (ResourceSetDescriptorSync<Any, ES>)
+
     @Suppress("UNCHECKED_CAST")
     private val linkDescriptor = descriptorSetSync.linkDescriptor as (ResourceLinkDescriptorSync<Any, EC>)
+
+    @Suppress("UNCHECKED_CAST")
+    private val temporalLinkDescriptor = descriptorSetSync.temporalLinkDescriptor as (ResourceTemporalLinkDescriptor<Any, EC>)
+
+    @Suppress("UNCHECKED_CAST")
+    private val setVisibilityDescriptor = descriptorSetSync.setVisibilityDescriptor as (ResourceSetVisibilityDescriptorSync<Any>)
     private val contentDescriptors = descriptorSetSync.contentDescriptors
 
     fun readSet(uid: String): ResourceSet<ES>? {
@@ -215,6 +220,22 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             else -> applyContentUnionClient(set, contentType, action, contents, timeWriting)
         }
     }
+
+    fun readSetVisibilities(userUid: String): List<ResourceSetVisibility> {
+        val setVisibilityDaoCompatSync = setVisibilityDescriptor.resourceSetVisibilityDaoCompatSync
+        val converter = setVisibilityDescriptor.converter
+
+        return setVisibilityDaoCompatSync.findAllByUserUid(userUid).map { converter.convertFrom(it) }
+    }
+
+    fun applySetVisibilities(setVisibilities: List<ResourceSetVisibility>) {
+        val setVisibilityDaoCompatSync = setVisibilityDescriptor.resourceSetVisibilityDaoCompatSync
+        val converter = setVisibilityDescriptor.converter
+
+        setVisibilityDaoCompatSync.applies(setVisibilities)
+    }
+
+
 
     private fun applyContentSingleClient(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
 

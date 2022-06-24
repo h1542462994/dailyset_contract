@@ -1,4 +1,4 @@
-package org.tty.dailyset.contract.bean.enums
+package org.tty.dailyset.contract.data
 
 enum class InAction {
     Apply,

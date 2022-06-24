@@ -1,7 +1,7 @@
 package org.tty.dailyset.contract.module.sync
 
-import org.tty.dailyset.contract.bean.annotation.UseTransaction
-import org.tty.dailyset.contract.bean.annotation.UseUserContext
+import org.tty.dailyset.contract.annotation.UseTransaction
+import org.tty.dailyset.contract.annotation.UseUserContext
 import org.tty.dailyset.contract.data.*
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceSet

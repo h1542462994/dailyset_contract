@@ -1,6 +1,5 @@
 package org.tty.dailyset.contract.declare
 
-import org.tty.dailyset.contract.bean.enums.TemporalAction
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient

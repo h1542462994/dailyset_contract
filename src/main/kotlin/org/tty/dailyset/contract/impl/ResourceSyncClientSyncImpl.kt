@@ -3,9 +3,7 @@ package org.tty.dailyset.contract.impl
 import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
 import org.tty.dailyset.contract.dao.withTransactionR
 import org.tty.dailyset.contract.data.*
-import org.tty.dailyset.contract.declare.ResourceContent
-import org.tty.dailyset.contract.declare.ResourceDefaults
-import org.tty.dailyset.contract.declare.ResourceSet
+import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.module.sync.ResourceSyncClientSync
 import java.time.LocalDateTime
 
@@ -70,7 +68,6 @@ class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
         timeWriting: LocalDateTime
     ): ResourceSet<ES> {
         val set = requireReadBase(uid)
-        val userContext = requireUser()
         return inTransaction {
             internalWriteContents(set, typedResourcesApplying, timeWriting)
             // NOTICE: client has no ability to manage version.
@@ -99,11 +96,31 @@ class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
     }
 
     override fun readAvailableBases(): List<ResourceSet<ES>> {
-        TODO("Not yet implemented")
+        val userContext = requireUserContext()
+        val uids = descriptorDaoHelper.readSetVisibilities(userContext.userUid)
+            .filter { it.visible }
+            .map { it.uid }
+        return descriptorDaoHelper.readSets(uids)
     }
 
     override fun writeAvailableBases(sets: List<ResourceSet<ES>>) {
-        TODO("Not yet implemented")
+        val userContext = requireUserContext()
+        sets.forEach {
+            descriptorDaoHelper.applySet(it)
+        }
+        val setVisibilities = descriptorDaoHelper.readSetVisibilities(userContext.userUid)
+        val diff = ResourceDiff2(
+            setVisibilities,
+            sets,
+            ProvideKeySelector { it.uid },
+            ProvideKeySelector { it.uid }
+        )
+
+        val newVisibilities = mutableListOf<ResourceSetVisibility>()
+        newVisibilities.addAll(diff.removeValues.map { it.copy(visible = false) })
+        newVisibilities.addAll(diff.sameValues.map { it.sourceValue.copy(visible = true) })
+        newVisibilities.addAll(diff.addValues.map { ResourceSetVisibility(uid = it.uid, userUid = userContext.userUid, visible = true) })
+        descriptorDaoHelper.applySetVisibilities(newVisibilities)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -122,7 +139,7 @@ class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
         }
     }
 
-    private fun requireUser(): UserContext {
+    private fun requireUserContext(): UserContext {
         require(userContext != UserContext.EMPTY) { "current userContext is EMPTY." }
         return userContext
     }
