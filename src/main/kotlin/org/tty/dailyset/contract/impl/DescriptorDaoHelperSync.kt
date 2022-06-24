@@ -13,6 +13,7 @@ import java.util.*
 /**
  * as SqliteHelper, to simplify the operation of dao interact.
  */
+@Suppress("UNCHECKED_CAST")
 class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     private val descriptorSetSync: DescriptorSetSync<TC, ES, EC>
 ) {

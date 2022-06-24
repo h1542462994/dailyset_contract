@@ -31,8 +31,6 @@ class ApplyReqBuilder<out TC: ResourceContent, EC> {
         list.addAll(contents.map { ResourceContentIn(InAction.Apply, it) })
     }
 
-
-
     fun replace(contentType: EC, content: @UnsafeVariance TC) {
         val list = store.getOrPut(contentType) { mutableListOf() }
         list.add(ResourceContentIn(InAction.Replace, content))

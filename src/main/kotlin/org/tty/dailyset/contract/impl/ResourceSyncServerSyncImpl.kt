@@ -80,6 +80,18 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         }
     }
 
+    override fun readUpdates(uid: String, version: Int): UpdateResult<TC, ES, EC> {
+        val set = requireNotNull(readBase(uid)) { "set($uid) is not existed." }
+        val typedResources = descriptorDaoHelper.contentTypes()
+            .map { contentType -> readUpdateContents(uid, contentType, version) }
+            .filter { typedResourcesUpdate -> typedResourcesUpdate.resourceContentsUn.isNotEmpty() }
+        return UpdateResult(set, typedResources)
+    }
+
+    override fun readUpdateContents(uid: String, contentType: EC, version: Int): TypedResourcesUpdate<TC, EC> {
+        TODO("Not yet implemented")
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun <R> inTransaction(action: () -> R): R {
         var result: R ?= null

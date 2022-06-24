@@ -76,7 +76,7 @@ class VocalTestServer {
         println("=== element apply2:: ===")
 
         val result = vocalSyncServer.read("my_vocal")
-        val songResult = result[VocalContentType.Song] as TypedResources<Song, VocalContentType>
+        val songResult = result.getVariance<Song>(VocalContentType.Song)
         val song = songResult.resourceContents.find { it.uid == "_id_susume" }!!
         vocalSyncServer.write(applyingReq("my_vocal") {
             apply(VocalContentType.Song, song.copy(description = "Des @V2", contentLength = 1000))

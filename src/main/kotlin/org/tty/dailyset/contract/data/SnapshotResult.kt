@@ -25,4 +25,10 @@ data class SnapshotResult<out TC: ResourceContent, ES, EC>(
         return typedResources.find { it.contentType == contentType }
             ?: TypedResources(contentType, listOf())
     }
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T: ResourceContent> getVariance(contentType: EC): TypedResources<T, EC> {
+        return typedResources.find { it.contentType == contentType } as TypedResources<T, EC>?
+            ?: TypedResources(contentType, listOf())
+    }
 }
