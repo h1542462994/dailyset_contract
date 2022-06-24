@@ -1,7 +1,8 @@
 package org.tty.dailyset.contract.impl
 
-import org.tty.dailyset.contract.bean.enums.InAction
+import org.tty.dailyset.contract.bean.annotation.UseTransaction
 import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
+import org.tty.dailyset.contract.dao.withTransactionR
 import org.tty.dailyset.contract.data.*
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceDefaults
@@ -26,11 +27,11 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
 
     override fun read(uid: String): SnapshotResult<TC, ES, EC> {
         val set = requireReadBase(uid)
-        val typeResources = descriptorDaoHelper.contentTypes()
+        val typedResources = descriptorDaoHelper.contentTypes()
             .map { contentType -> internalReadContents(set, contentType) }
             .filter { typedResources -> typedResources.resourceContents.isNotEmpty() }
         return SnapshotResult(
-            set, typeResources
+            set, typedResources
         )
     }
 
@@ -39,14 +40,17 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         return internalReadContents(set, contentType)
     }
 
+    @Suppress("IfThenToElvis")
     override fun createIfAbsent(set: ResourceSet<ES>): ResourceSet<ES> {
         val existedSet = readBase(set.uid)
         return if (existedSet != null) {
             existedSet
         } else {
-            val newSet = set.copy(version = ResourceDefaults.VERSION_INIT)
-            descriptorDaoHelper.applySet(newSet)
-            newSet
+            inTransaction {
+                val newSet = set.copy(version = ResourceDefaults.VERSION_INIT)
+                descriptorDaoHelper.applySet(newSet)
+                newSet
+            }
         }
     }
 
@@ -56,13 +60,14 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
     ): ResourceSet<ES> {
         val set = requireReadBase(req.setUid)
         return inTransaction {
-            req.typedResourcesApplying.map {
+            req.typedResourcesApplying.forEach {
                 internalWriteContents(set, timeWriting, it)
             }
             updateResourceSet(set)
         }
     }
 
+    @UseTransaction
     override fun writeContents(
         uid: String,
         typedResourcesApplying: TypedResourcesApplying<TC, EC>,
@@ -88,15 +93,24 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         return internalReadUpdateContents(set, contentType, version)
     }
 
+    override fun writeTemporal(
+        temporalResult: TemporalResult<TC, ES, EC>,
+        timeWriting: LocalDateTime
+    ): ResourceSet<ES> {
+        TODO("Not yet implemented")
+    }
+
+    override fun writeTemporalContents(
+        uid: String,
+        typedResourcesTemp: TypedResourcesTemp<TC, EC>,
+        timeWriting: LocalDateTime
+    ): ResourceSet<ES> {
+        TODO("Not yet implemented")
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun <R> inTransaction(action: () -> R): R {
-        var result: R ?= null
-        if (transactionSupport != null) {
-            transactionSupport.withTransaction { result = action() }
-        } else {
-            result = action()
-        }
-        return result as R
+        return transactionSupport.withTransactionR(action)
     }
 
     private fun updateResourceSet(set: ResourceSet<ES>): ResourceSet<ES> {
@@ -146,56 +160,8 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
     ) {
         val contentType = typedResourcesApplying.contentType
 
-        val actionList = mutableListOf<Pair<InAction, MutableList<TC>>>()
-
-        var replaceMode = false
-
-        for(index in typedResourcesApplying.resourceContentsIn.indices) {
-            val resourceContentIn = typedResourcesApplying.resourceContentsIn[index]
-            if (resourceContentIn.action == InAction.Single) {
-                require(actionList.isEmpty() && index == typedResourcesApplying.resourceContentsIn.size - 1) {
-                    "other action is not supported in InAction.Single mode. or have multi elements."
-                }
-                actionList.add(Pair(InAction.Single, mutableListOf(resourceContentIn.resourceContent!!)))
-            } else if (resourceContentIn.action == InAction.RemoveAll) {
-                require(!replaceMode) { "other action is not supported in InAction.Replace mode." }
-                actionList.clear()
-                actionList.add(Pair(InAction.RemoveAll, mutableListOf()))
-            } else if (resourceContentIn.action == InAction.Apply) {
-                require(!replaceMode) { "other action is not supported in InAction.Replace mode." }
-                if (actionList.isEmpty() || actionList.last().first != InAction.Apply) {
-                    actionList.add(Pair(InAction.Apply, mutableListOf(resourceContentIn.resourceContent!!)))
-                } else {
-                    actionList.last().second.add(resourceContentIn.resourceContent!!)
-                }
-            } else if (resourceContentIn.action == InAction.Remove) {
-                require(!replaceMode) { "other action is not supported in InAction.Replace mode." }
-                if (actionList.isEmpty() || actionList.last().first != InAction.Remove) {
-                    actionList.add(Pair(InAction.Remove, mutableListOf(resourceContentIn.resourceContent!!)))
-                } else {
-                    actionList.last().second.add(resourceContentIn.resourceContent!!)
-                }
-            } else if (resourceContentIn.action == InAction.Replace) {
-                require(actionList.isEmpty() || actionList.last().first == InAction.Replace) {
-                    "other action is not supported in InAction.Replace mode."
-                }
-                replaceMode = true
-                if (actionList.isEmpty()) {
-                    actionList.add(Pair(InAction.Replace, mutableListOf(resourceContentIn.resourceContent!!)))
-                } else {
-                    actionList.last().second.add(resourceContentIn.resourceContent!!)
-                }
-            }
-        }
-
-        actionList.forEach {
-            when(it.first) {
-                InAction.Single -> descriptorDaoHelper.applyContentSingle(set, contentType, it.second.first(), timeWriting)
-                InAction.RemoveAll -> descriptorDaoHelper.applyContentRemoveAll(set, contentType, timeWriting)
-                InAction.Apply -> descriptorDaoHelper.applyContentApply(set, contentType, it.second, timeWriting)
-                InAction.Remove -> descriptorDaoHelper.applyContentRemove(set, contentType, it.second, timeWriting)
-                InAction.Replace -> descriptorDaoHelper.applyContentReplace(set, contentType, it.second, timeWriting)
-            }
+        typedResourcesApplying.prelude().forEach {
+            descriptorDaoHelper.applyContentServer(set, contentType, it.action, it.contents, timeWriting)
         }
 
     }

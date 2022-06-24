@@ -4,7 +4,7 @@ import org.tty.dailyset.contract.declare.ResourceContent
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class TypedResourcesUpdate<out TC: ResourceContent, EC>(
+data class TypedResourcesTemp<out TC: ResourceContent, EC>(
     val contentType: EC,
-    val resourceContentsUn: List<ResourceContentUn<TC, EC>>
+    val resourceContentsTn: List<ResourceContentTn<TC, EC>>
 )

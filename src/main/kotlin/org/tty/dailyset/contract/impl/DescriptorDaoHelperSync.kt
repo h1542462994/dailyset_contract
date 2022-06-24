@@ -90,7 +90,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     }
 
     @Suppress("UNCHECKED_CAST", "DuplicatedCode")
-    fun readContentsUn(links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<ResourceContentUn<EC>> {
+    fun readContentsUn(links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<ResourceContentUn<TC, EC>> {
         return if (links.isEmpty()) {
             emptyList()
         } else {
@@ -116,8 +116,14 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         contentDaoCompat.applies(contents.map { converter.convertTo(it) })
     }
 
+    fun applyContentServer(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) =
+        when (action) {
+            InAction.Single -> applyContentSingleServer(set, contentType, contents[0], timeWriting)
+            InAction.RemoveAll -> applyContentRemoveAllServer(set, contentType, timeWriting)
+            else -> applyContentUnionServer(set, contentType, action, contents, timeWriting)
+        }
 
-    fun applyContentSingle(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
+    private fun applyContentSingleServer(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
         val links = readLinks(set.uid, contentType)
         val newLink = if (links.isEmpty()) {
             ResourceLink(set.uid, contentType, assignedUid(content.uid),
@@ -142,7 +148,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
      * used for [InAction.Apply], [InAction.Replace] and [InAction.Remove]
      */
     @Suppress("UNCHECKED_CAST")
-    private fun applyContentUnion(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime, action: InAction) {
+    private fun applyContentUnionServer(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
         require(action == InAction.Apply || action == InAction.Remove || action == InAction.Replace) {
             "other action is not supported."
         }
@@ -197,21 +203,29 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         }
     }
 
-    fun applyContentApply(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
-        applyContentUnion(set, contentType, contents, timeWriting, InAction.Apply)
-    }
-
-    fun applyContentReplace(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
-        applyContentUnion(set, contentType, contents, timeWriting, InAction.Apply)
-    }
-
-    fun applyContentRemove(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
-        applyContentUnion(set, contentType, contents, timeWriting, InAction.Remove)
-    }
-
-    fun applyContentRemoveAll(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
+    private fun applyContentRemoveAllServer(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
         val links = readLinks(set.uid, contentType)
         applyLinks(set.uid, contentType, links.map { it.copy(version = set.increasedVersion(), isRemoved = true, lastTick = timeWriting) })
+    }
+
+    fun applyContentClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
+        when(action) {
+            InAction.Single -> applyContentSingleClient(set, contentType, contents[0], timeWriting)
+            InAction.RemoveAll -> applyContentRemoveAllClient(set, contentType, timeWriting)
+            else -> applyContentUnionClient(set, contentType, action, contents, timeWriting)
+        }
+    }
+
+    private fun applyContentSingleClient(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
+
+    }
+
+    private fun applyContentUnionClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
+
+    }
+
+    private fun applyContentRemoveAllClient(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
+
     }
 
     fun contentTypes(): List<EC> {

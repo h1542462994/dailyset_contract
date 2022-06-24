@@ -1,12 +1,25 @@
 package org.tty.dailyset.contract.declare
 
+import org.tty.dailyset.contract.descriptor.ResourceContentDescriptor
+
 /**
- * market the key of the resource in comparison.
+ * the key of the [ResourceContent].
+ *
+ * it is used to locate the resourceContent when **uid** is empty.
+ *
+ * @see KeySelector
  */
 interface Key<out T> {
     fun key(): T
 }
 
+/**
+ * the keySelector for module.
+ *
+ * it is used to locate the resourceContent when **uid** is empty.
+ *
+ * **default impl** is the [Key] on [ResourceContent], or you can provide [ProvideKeySelector] in [ResourceContentDescriptor]
+ */
 interface KeySelector< T, out TK> {
     fun selectKey(value: @UnsafeVariance T): TK
 }
@@ -19,7 +32,7 @@ class DefaultKeySelector<T, TK>: KeySelector<T, TK> {
         return if (value is Key<*>) {
             value.key() as TK
         } else {
-            value as TK
+            throw IllegalStateException("ResourceContent not implemented Key interface, so we couldn't locate the resource by content, please impl with Key or use ProvideKeySelector instead.")
         }
     }
 }

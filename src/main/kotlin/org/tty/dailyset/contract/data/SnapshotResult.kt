@@ -2,11 +2,19 @@ package org.tty.dailyset.contract.data
 
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceSet
+import org.tty.dailyset.contract.declare.ResourceTemporalLink
 import kotlinx.serialization.Serializable
 
 /**
- * snapshot result of [ResourceSet], implementation is different between client and server.
- * snapshot will only contain [set] and valid [typedResources]
+ * a snapshot for newest visitable data in **client** or **server**.
+ *
+ * in **server**, it mean the storage data, because [ResourceTemporalLink] is not included.
+ *
+ * in **client**, it means the storage **download** or **temporal** data.
+ *
+ * the data is used for **visualization** or **proceed**, so it is not recommend for transport.
+ *
+ * it is the return of *ResourceSyncModule:read*.
  */
 @Serializable
 data class SnapshotResult<out TC: ResourceContent, ES, EC>(
