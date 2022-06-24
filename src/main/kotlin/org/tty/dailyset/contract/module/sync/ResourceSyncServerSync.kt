@@ -6,7 +6,7 @@ import org.tty.dailyset.contract.declare.ResourceContent
 
 
 interface ResourceSyncServerSync<TC: ResourceContent, ES, EC>: ResourceSyncModuleSync<TC, ES, EC> {
-    fun readUpdates(uid: String, version: Int): UpdateResult<TC, ES>
+    fun readUpdate(uid: String, version: Int): UpdateResult<TC, ES, EC>
 
     fun readUpdateContents(uid: String, contentType: EC, version: Int): TypedResourcesUpdate<TC, EC>
 

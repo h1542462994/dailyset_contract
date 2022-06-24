@@ -10,7 +10,7 @@ class InMemoryResourceLinks<EC>(
 ): MutableMap<LinkKey<EC>, ResourceLink<EC>> by internalStorage, ResourceLinkDaoCompatSync<EC, ResourceLink<EC>>  {
     override fun findAllByUidAndTypeAndVersionNewer(uid: String, type: EC, version: Int): List<ResourceLink<EC>> {
         return internalStorage.values.filter {
-            it.setUid == uid && it.contentType == type && it.version >= version
+            it.setUid == uid && it.contentType == type && it.version > version
         }
     }
 

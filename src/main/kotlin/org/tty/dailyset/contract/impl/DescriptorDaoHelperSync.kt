@@ -2,8 +2,8 @@ package org.tty.dailyset.contract.impl
 
 import org.tty.dailyset.contract.bean.enums.InAction
 import org.tty.dailyset.contract.dao.sync.ResourceContentDaoCompatSync
+import org.tty.dailyset.contract.data.ResourceContentUn
 import org.tty.dailyset.contract.declare.*
-import org.tty.dailyset.contract.descriptor.ResourceContentDescriptor
 import org.tty.dailyset.contract.descriptor.ResourceContentDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceLinkDescriptorSync
 import org.tty.dailyset.contract.descriptor.ResourceSetDescriptorSync
@@ -13,13 +13,14 @@ import java.util.*
 /**
  * as SqliteHelper, to simplify the operation of dao interact.
  */
-@Suppress("UNCHECKED_CAST")
 class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
-    private val descriptorSetSync: DescriptorSetSync<TC, ES, EC>
+    descriptorSetSync: DescriptorSetSync<TC, ES, EC>
 ) {
 
     // FIXME: unsafe typecast.
+    @Suppress("UNCHECKED_CAST")
     private val setDescriptor = descriptorSetSync.setDescriptor as (ResourceSetDescriptorSync<Any, ES>)
+    @Suppress("UNCHECKED_CAST")
     private val linkDescriptor = descriptorSetSync.linkDescriptor as (ResourceLinkDescriptorSync<Any, EC>)
     private val contentDescriptors = descriptorSetSync.contentDescriptors
 
@@ -48,13 +49,9 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     }
 
     fun readLinks(uid: String, contentType: EC): List<ResourceLink<EC>> {
-        val linkDaoCompat = linkDescriptor.resourceLinkDaoCompatSync
-        val converter = linkDescriptor.converter
-        val beans = linkDaoCompat.findAllByUidAndTypeAndVersionNewer(uid, contentType, ResourceDefaults.VERSION_ZERO)
-        return beans.map {
-            converter.convertFrom(it)
-        }
+        return readLinksThen(uid, contentType, ResourceDefaults.VERSION_ZERO)
     }
+
 
     fun applyLinks(uid: String, contentType: EC, links: List<ResourceLink<EC>>): Int {
         val linkDaoCompat = linkDescriptor.resourceLinkDaoCompatSync
@@ -66,7 +63,17 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         )
     }
 
-    fun readContents(links: List<ResourceLink<EC>>): List<TC> {
+    fun readLinksThen(uid: String, contentType: EC, version: Int): List<ResourceLink<EC>> {
+        val linkDaoCompat = linkDescriptor.resourceLinkDaoCompatSync
+        val converter = linkDescriptor.converter
+        val beans = linkDaoCompat.findAllByUidAndTypeAndVersionNewer(uid, contentType, version)
+        return beans.map {
+            converter.convertFrom(it)
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST", "DuplicatedCode")
+    fun readContents(links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<TC> {
         return if (links.isEmpty()) {
             emptyList()
         } else {
@@ -74,7 +81,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
             val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
             val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
-            val linkedUids = links.filter { !it.isRemoved }.map { it.contentUid }
+            val linkedUids = links.filter { filter(it) }.map { it.contentUid }
             val contents = contentDaoCompat.findAllByUids(linkedUids)
             contents.map {
                 converter.convertFrom(it)
@@ -82,7 +89,25 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         }
     }
 
+    @Suppress("UNCHECKED_CAST", "DuplicatedCode")
+    fun readContentsUn(links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<ResourceContentUn<EC>> {
+        return if (links.isEmpty()) {
+            emptyList()
+        } else {
+            val contentType = links.first().contentType
+            val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
+            val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
+            val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
+            val linkedUids = links.filter { filter(it) }.map { it.contentUid }
+            val contents = contentDaoCompat.findAllByUids(linkedUids).map { converter.convertFrom(it) }.associateBy { it.uid }
 
+            return links.map {
+                ResourceContentUn(link = it, content = contents[it.contentUid]!!)
+            }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
     private fun applyContents(contentType: EC, contents: List<TC>) {
         val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
         val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync as ResourceContentDaoCompatSync<Any>
@@ -113,14 +138,17 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         applyContents(contentType, contents = listOf(dynamicCopyByUid(content, newLink.contentUid)))
     }
 
+    /**
+     * used for [InAction.Apply], [InAction.Replace] and [InAction.Remove]
+     */
     @Suppress("UNCHECKED_CAST")
-    fun applyContentUnion(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime, action: InAction) {
+    private fun applyContentUnion(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime, action: InAction) {
         require(action == InAction.Apply || action == InAction.Remove || action == InAction.Replace) {
             "other action is not supported."
         }
 
         val links = readLinks(set.uid, contentType)
-        val existedContents = readContents(links)
+        val existedContents = readContents(links) { true }
         val contentDescriptor = contentDescriptor(contentType)
 
         val uidLessContents = contents.filter { it.uid.isEmpty() }
@@ -169,7 +197,6 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun applyContentApply(set: ResourceSet<ES>, contentType: EC, contents: List<TC>, timeWriting: LocalDateTime) {
         applyContentUnion(set, contentType, contents, timeWriting, InAction.Apply)
     }
@@ -183,7 +210,8 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     }
 
     fun applyContentRemoveAll(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
-        TODO("not implemented yet.")
+        val links = readLinks(set.uid, contentType)
+        applyLinks(set.uid, contentType, links.map { it.copy(version = set.increasedVersion(), isRemoved = true, lastTick = timeWriting) })
     }
 
     fun contentTypes(): List<EC> {

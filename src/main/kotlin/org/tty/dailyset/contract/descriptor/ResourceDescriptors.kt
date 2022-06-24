@@ -2,13 +2,13 @@
  * factory functions to create resource descriptor.
  */
 
+@file:Suppress("unused")
+
 package org.tty.dailyset.contract.descriptor
 
 import org.tty.dailyset.contract.dao.async.*
 import org.tty.dailyset.contract.dao.sync.*
 import org.tty.dailyset.contract.declare.*
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 internal class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE: Any, EC>(
     override val contentType: EC,
@@ -106,7 +106,7 @@ fun <T: ResourceContent, EC> resourceContentDescriptorSync(
     )
 }
 
-fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorSyncWithConverter(
+fun <T: ResourceContent, TE: ResourceContent, EC> resourceContentDescriptorSyncWithConverter(
     contentType: EC,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>,
     converter: ResourceConverter<T, TE>,
@@ -133,7 +133,7 @@ fun <T: ResourceContent, EC> resourceContentDescriptorAsync(
     )
 }
 
-fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorAsyncWithConverter(
+fun <T: ResourceContent, TE: ResourceContent, EC> resourceContentDescriptorAsyncWithConverter(
     contentType: EC,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>,
     converter: ResourceConverter<T, TE>,

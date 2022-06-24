@@ -4,7 +4,6 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestMethodOrder
-import org.tty.dailyset.contract.data.TypedResources
 import org.tty.dailyset.contract.data.applyingReq
 import org.tty.dailyset.contract.declare.ResourceDefaults
 import org.tty.dailyset.contract.declare.ResourceSet
@@ -98,6 +97,14 @@ class VocalTestServer {
 
         println(inMemoryResourceLinks)
         println(inMemorySongs)
+    }
+
+    @Test
+    @Order(16)
+    fun testGetUpdate() {
+        println(vocalSyncServer.readUpdate("my_vocal", ResourceDefaults.VERSION_ZERO))
+        println(vocalSyncServer.readUpdate("my_vocal", 2))
+
     }
 
 

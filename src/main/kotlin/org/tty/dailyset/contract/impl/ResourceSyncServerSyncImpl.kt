@@ -10,7 +10,7 @@ import org.tty.dailyset.contract.module.sync.ResourceSyncServerSync
 import java.time.LocalDateTime
 
 class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
-    private val descriptorSet: DescriptorSetSync<TC, ES, EC>,
+    descriptorSet: DescriptorSetSync<TC, ES, EC>,
     private val transactionSupport: TransactionSupportSync?,
 ) : ResourceSyncServerSync<TC, ES, EC> {
     private val descriptorDaoHelper = DescriptorDaoHelperSync(descriptorSet)
@@ -20,10 +20,14 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         return descriptorDaoHelper.readSet(uid)
     }
 
+    private fun requireReadBase(uid: String): ResourceSet<ES> {
+        return requireNotNull(readBase(uid)) { "set(${uid} is not existed.)" }
+    }
+
     override fun read(uid: String): SnapshotResult<TC, ES, EC> {
-        val set = requireNotNull(readBase(uid)) { "set(${uid} is not existed.)" }
+        val set = requireReadBase(uid)
         val typeResources = descriptorDaoHelper.contentTypes()
-            .map { contentType -> readContents(uid, contentType) }
+            .map { contentType -> internalReadContents(set, contentType) }
             .filter { typedResources -> typedResources.resourceContents.isNotEmpty() }
         return SnapshotResult(
             set, typeResources
@@ -31,23 +35,18 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
     }
 
     override fun readContents(uid: String, contentType: EC): TypedResources<TC, EC> {
-        require(readBase(uid) != null) { "set(${uid}) is not existed." }
-        val links = descriptorDaoHelper.readLinks(uid, contentType)
-        val contents = descriptorDaoHelper.readContents(links)
-        return TypedResources(
-            contentType = contentType,
-            resourceContents = contents
-        )
+        val set = requireReadBase(uid)
+        return internalReadContents(set, contentType)
     }
 
     override fun createIfAbsent(set: ResourceSet<ES>): ResourceSet<ES> {
         val existedSet = readBase(set.uid)
-        if (existedSet != null) {
-            return existedSet
+        return if (existedSet != null) {
+            existedSet
         } else {
             val newSet = set.copy(version = ResourceDefaults.VERSION_INIT)
             descriptorDaoHelper.applySet(newSet)
-            return newSet
+            newSet
         }
     }
 
@@ -55,9 +54,7 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         req: ApplyingReq<TC, EC>,
         timeWriting: LocalDateTime,
     ): ResourceSet<ES> {
-        val set = descriptorDaoHelper.readSet(req.setUid)
-        require(set != null) { "set(${req.setUid} is not existed.)" }
-
+        val set = requireReadBase(req.setUid)
         return inTransaction {
             req.typedResourcesApplying.map {
                 internalWriteContents(set, timeWriting, it)
@@ -66,30 +63,29 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         }
     }
 
-
     override fun writeContents(
         uid: String,
         typedResourcesApplying: TypedResourcesApplying<TC, EC>,
         timeWriting: LocalDateTime,
     ): ResourceSet<ES> {
-        val set = descriptorDaoHelper.readSet(uid)
-        require(set != null) { "set(${uid} is not existed.)" }
+        val set = requireReadBase(uid)
         return inTransaction {
             internalWriteContents(set, timeWriting, typedResourcesApplying)
             updateResourceSet(set)
         }
     }
 
-    override fun readUpdates(uid: String, version: Int): UpdateResult<TC, ES, EC> {
-        val set = requireNotNull(readBase(uid)) { "set($uid) is not existed." }
+    override fun readUpdate(uid: String, version: Int): UpdateResult<TC, ES, EC> {
+        val set = requireReadBase(uid)
         val typedResources = descriptorDaoHelper.contentTypes()
-            .map { contentType -> readUpdateContents(uid, contentType, version) }
+            .map { contentType -> internalReadUpdateContents(set, contentType, version) }
             .filter { typedResourcesUpdate -> typedResourcesUpdate.resourceContentsUn.isNotEmpty() }
         return UpdateResult(set, typedResources)
     }
 
     override fun readUpdateContents(uid: String, contentType: EC, version: Int): TypedResourcesUpdate<TC, EC> {
-        TODO("Not yet implemented")
+        val set = requireReadBase(uid)
+        return internalReadUpdateContents(set, contentType, version)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -109,6 +105,40 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         return newSet
     }
 
+    /**
+     * internalReadContents for [read] and [readContents], the param is set.
+     */
+    private fun internalReadContents(
+        set: ResourceSet<ES>,
+        contentType: EC
+    ): TypedResources<TC, EC> {
+        val links = descriptorDaoHelper.readLinks(set.uid, contentType)
+        val contents = descriptorDaoHelper.readContents(links) { !it.isRemoved }
+        return TypedResources(
+            contentType = contentType,
+            resourceContents = contents
+        )
+    }
+
+    /**
+     * internalReadUpdateContents for [readUpdate]
+     */
+    private fun internalReadUpdateContents(
+        set: ResourceSet<ES>,
+        contentType: EC,
+        version: Int
+    ): TypedResourcesUpdate<TC, EC> {
+        val links = descriptorDaoHelper.readLinksThen(set.uid, contentType, version)
+        val contentsUn = descriptorDaoHelper.readContentsUn(links) { true }
+        return TypedResourcesUpdate(
+            contentType = contentType,
+            resourceContentsUn = contentsUn
+        )
+    }
+
+    /**
+     * internalWriteContents for [write] and [writeContents], the param is set.
+     */
     private fun internalWriteContents(
         set: ResourceSet<ES>,
         timeWriting: LocalDateTime,
