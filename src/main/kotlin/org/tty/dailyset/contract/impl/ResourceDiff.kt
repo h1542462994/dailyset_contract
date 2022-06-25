@@ -1,11 +1,11 @@
 package org.tty.dailyset.contract.impl
 
-import org.tty.dailyset.contract.declare.KeySelector
+import org.tty.dailyset.contract.declare.KeySelectorFunc
 
 class ResourceDiff<T, TK>(
     sourceValues: List<T>,
     targetValues: List<T>,
-    keySelector: KeySelector<T, TK>
+    keySelector: KeySelectorFunc<T, TK>
 ) {
     data class Same<T, TK>(
         val sourceValue: T,
@@ -18,10 +18,10 @@ class ResourceDiff<T, TK>(
     private val removeList: MutableList<T> = mutableListOf()
 
     init {
-        val sourceMap = sourceValues.associateBy { keySelector.selectKey(it) }.toMutableMap()
+        val sourceMap = sourceValues.associateBy { keySelector(it) }.toMutableMap()
 
         for (target in targetValues) {
-            val key = keySelector.selectKey(target)
+            val key = keySelector(target)
             val source = sourceMap[key]
             if (source == null) {
                 addList.add(target)

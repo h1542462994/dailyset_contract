@@ -1,7 +1,6 @@
 package org.tty.dailyset.contract.test.vocal.bean
 
 import org.tty.dailyset.contract.declare.Key
-import org.tty.dailyset.contract.declare.KeySelector
 import org.tty.dailyset.contract.declare.ResourceContent
 
 data class Song(

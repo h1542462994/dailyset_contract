@@ -24,7 +24,7 @@ class InMemoryResourceTemporaryLinks<EC>(
 
     override fun countByUid(uid: String): Int {
         return internalStorage.values.count {
-            it.setUid == uid
+            it.setUid == uid && it.state != TemporaryState.Accepted
         }
     }
 

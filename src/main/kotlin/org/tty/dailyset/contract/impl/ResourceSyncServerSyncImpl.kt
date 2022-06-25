@@ -61,7 +61,7 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         val set = requireReadBase(req.setUid)
         return inTransaction {
             req.typedResourcesApplying.forEach {
-                internalWriteContents(set, timeWriting, it)
+                internalWriteContents(set, it, timeWriting)
             }
             updateResourceSet(set)
         }
@@ -75,7 +75,7 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
     ): ResourceSet<ES> {
         val set = requireReadBase(uid)
         return inTransaction {
-            internalWriteContents(set, timeWriting, typedResourcesApplying)
+            internalWriteContents(set, typedResourcesApplying, timeWriting)
             updateResourceSet(set)
         }
     }
@@ -94,11 +94,6 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         return UpdateResult(set, typedResources)
     }
 
-    override fun readUpdateContents(uid: String, contentType: EC, version: Int): TypedResourcesUpdate<TC, EC> {
-        val set = requireReadBase(uid)
-        return internalReadUpdateContents(set, contentType, version)
-    }
-
     override fun writeTemporaryAll(
         temporaryResults: List<TemporaryResult<TC, ES, EC>>,
         timeWriting: LocalDateTime
@@ -112,15 +107,9 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         temporaryResult: TemporaryResult<TC, ES, EC>,
         timeWriting: LocalDateTime
     ): ResourceSet<ES> {
-        TODO("Not yet implemented")
-    }
-
-    override fun writeTemporaryContents(
-        uid: String,
-        typedResourcesTemp: TypedResourcesTemporary<TC, EC>,
-        timeWriting: LocalDateTime
-    ): ResourceSet<ES> {
-        TODO("Not yet implemented")
+        return inTransaction {
+            internalWriteTemporary(temporaryResult, timeWriting)
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -170,15 +159,33 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
      */
     private fun internalWriteContents(
         set: ResourceSet<ES>,
-        timeWriting: LocalDateTime,
         typedResourcesApplying: TypedResourcesApplying<TC, EC>,
+        timeWriting: LocalDateTime,
     ) {
         val contentType = typedResourcesApplying.contentType
 
         typedResourcesApplying.prelude().forEach {
             descriptorDaoHelper.applyContentsServer(set, contentType, it.action, it.contents, timeWriting)
         }
+    }
 
+    private fun internalWriteTemporary(
+        temporaryResult: TemporaryResult<TC, ES, EC>,
+        timeWriting: LocalDateTime
+    ): ResourceSet<ES> {
+        val set = createIfAbsent(temporaryResult.set)
+        val newTemporaryResult = temporaryResult.adjustTick(timeWriting)
+        newTemporaryResult.typedResourcesTemp.forEach {
+            internalWriteTemporaryContents(set, it)
+        }
+        return set
+    }
+
+    private fun internalWriteTemporaryContents(
+        set: ResourceSet<ES>,
+        typedResourcesTemporary: TypedResourcesTemporary<TC, EC>,
+    ) {
+        TODO("Not yet implemented")
     }
 
 }

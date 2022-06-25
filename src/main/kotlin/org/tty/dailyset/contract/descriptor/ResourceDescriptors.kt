@@ -12,14 +12,14 @@ import org.tty.dailyset.contract.declare.*
 
 internal class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE: Any, EC>(
     override val contentType: EC,
-    override val keySelector: KeySelector<T, Any>,
+    override val keySelector: KeySelectorFunc<T, Any>,
     override val converter: ResourceConverter<T, TE>,
     override val resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>
 ): ResourceContentDescriptorSync<T, TE, EC>
 
 internal class ResourceContentDescriptorAsyncImpl<T: ResourceContent, TE: Any, EC>(
     override val contentType: EC,
-    override val keySelector: KeySelector<T, Any>,
+    override val keySelector: KeySelectorFunc<T, Any>,
     override val converter: ResourceConverter<T, TE>,
     override val resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>
 ): ResourceContentDescriptorAsync<T, TE, EC>
@@ -75,7 +75,7 @@ fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorSync(
     contentType: EC,
     converter: ResourceConverter<T, TE>,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>,
-    keySelector: KeySelector<T, Any> = DefaultKeySelector(),
+    keySelector: KeySelectorFunc<T, Any> = defaultKeySelectorFunc(),
 ): ResourceContentDescriptorSync<T, TE, EC> {
     return ResourceContentDescriptorSyncImpl(
         contentType, keySelector, converter, resourceContentDaoCompatSync
@@ -86,7 +86,7 @@ fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorAsync(
     contentType: EC,
     converter: ResourceConverter<T, TE>,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>,
-    keySelector: KeySelector<T, Any> = DefaultKeySelector()
+    keySelector: KeySelectorFunc<T, Any> = defaultKeySelectorFunc()
 ): ResourceContentDescriptorAsync<T, TE, EC> {
     return ResourceContentDescriptorAsyncImpl(
         contentType, keySelector, converter, resourceContentDaoCompatAsync
@@ -96,7 +96,7 @@ fun <T: ResourceContent, TE: Any, EC> resourceContentDescriptorAsync(
 fun <T: ResourceContent, EC> resourceContentDescriptorSync(
     contentType: EC,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<T>,
-    keySelector: KeySelector<T, Any> = DefaultKeySelector(),
+    keySelector: KeySelectorFunc<T, Any> = defaultKeySelectorFunc(),
 ): ResourceContentDescriptorSync<T, T, EC> {
     return resourceContentDescriptorSync(
         contentType = contentType,
@@ -110,7 +110,7 @@ fun <T: ResourceContent, TE: ResourceContent, EC> resourceContentDescriptorSyncW
     contentType: EC,
     resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>,
     converter: ResourceConverter<T, TE>,
-    keySelector: KeySelector<T, Any> = DefaultKeySelector()
+    keySelector: KeySelectorFunc<T, Any> = defaultKeySelectorFunc()
 ): ResourceContentDescriptorSync<T, TE, EC> {
     return resourceContentDescriptorSync(
         contentType = contentType,
@@ -123,7 +123,7 @@ fun <T: ResourceContent, TE: ResourceContent, EC> resourceContentDescriptorSyncW
 fun <T: ResourceContent, EC> resourceContentDescriptorAsync(
     contentType: EC,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<T>,
-    keySelector: KeySelector<T, Any> = DefaultKeySelector()
+    keySelector: KeySelectorFunc<T, Any> = defaultKeySelectorFunc()
 ): ResourceContentDescriptorAsync<T, T, EC> {
     return resourceContentDescriptorAsync(
         contentType = contentType,
@@ -137,7 +137,7 @@ fun <T: ResourceContent, TE: ResourceContent, EC> resourceContentDescriptorAsync
     contentType: EC,
     resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>,
     converter: ResourceConverter<T, TE>,
-    keySelector: KeySelector<T, Any> = DefaultKeySelector()
+    keySelector: KeySelectorFunc<T, Any> = defaultKeySelectorFunc()
 ): ResourceContentDescriptorAsync<T, TE, EC> {
     return resourceContentDescriptorAsync(
         contentType = contentType,

@@ -1,9 +1,6 @@
 package org.tty.dailyset.contract.test.vocal.memory
 
-import org.tty.dailyset.contract.declare.DefaultKeySelector
-import org.tty.dailyset.contract.declare.ResourceContent
-import org.tty.dailyset.contract.declare.ResourceLink
-import org.tty.dailyset.contract.declare.ResourceSet
+import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.descriptor.*
 
 fun <ES> inMemoryResourceSetDescriptorSync(inMemoryResourceSets: InMemoryResourceSets<ES> = InMemoryResourceSets()): ResourceSetDescriptorSync<ResourceSet<ES>, ES> {
@@ -22,6 +19,6 @@ fun <T: ResourceContent, EC> inMemoryResourceContentDescriptorSync(contentType: 
     return resourceContentDescriptorSync(
         contentType = contentType,
         resourceContentDaoCompatSync = inMemoryResourceContents,
-        keySelector = DefaultKeySelector()
+        keySelector = defaultKeySelectorFunc()
     )
 }

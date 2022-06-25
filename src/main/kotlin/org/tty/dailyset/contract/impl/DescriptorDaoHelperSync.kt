@@ -122,16 +122,55 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
      */
     @Suppress("UNCHECKED_CAST")
     fun readContents(contentType: EC, links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<TC> {
-        return if (links.isEmpty()) {
+        val (dao, converter) = contentMetaOf(contentType)
+        val linkedUids = links.filter { filter(it) }.map { it.contentUid }.ifEmpty { return listOf() }
+        val contents = dao.findAllByUids(linkedUids)
+        return contents.map {
+            converter.convertFrom(it)
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun readContentsClient(
+        contentType: EC,
+        links: List<ResourceLink<EC>>,
+        temporaryLinks: List<ResourceTemporaryLink<EC>>
+    ): List<TC> {
+        val (dao, converter) = contentMetaOf(contentType)
+        val localSuffixSupport = ResourceDefaults
+        val linkedUids = links.filter { !it.isRemoved }.map { it.contentUid }
+
+        val contents = if (linkedUids.isEmpty()) {
             emptyList()
         } else {
-            val (dao, converter) = contentMetaOf(contentType)
-            val linkedUids = links.filter { filter(it) }.map { it.contentUid }
             val contents = dao.findAllByUids(linkedUids)
-            contents.map {
-                converter.convertFrom(it)
-            }
+            contents.map { converter.convertFrom(it) }
         }
+
+        val removedUids = temporaryLinks
+            .filter { it.action == TemporaryAction.Remove }
+            .map { it.contentUid }
+
+        val temporaryLinkedUids = temporaryLinks.filter { it.action == TemporaryAction.Apply }
+            .map { localSuffixSupport.addLocalSuffix(it.contentUid) }
+        val temporaryContents = if (temporaryLinkedUids.isEmpty()) {
+            emptyList()
+        } else {
+            val temporaryContents = dao.findAllByUids(temporaryLinkedUids)
+            temporaryContents
+                .map { converter.convertFrom(it) }
+                .map { it.copyByUid(localSuffixSupport.removeLocalSuffix(it.uid)) as TC }
+        }
+
+        val resourceDiff = ResourceDiff(
+            contents,
+            temporaryContents,
+            keySelector = { it.uid }
+        )
+
+        return resourceDiff.removeValues.filter { it.uid !in removedUids }
+            .plus(resourceDiff.sameValues.map { it.targetValue })
+            .plus(resourceDiff.addValues)
     }
 
     /**
@@ -143,7 +182,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             emptyList()
         } else {
             val (dao, converter) = contentMetaOf(contentType)
-            val linkedUids = links.filter { filter(it) }.map { it.contentUid }
+            val linkedUids = links.filter { filter(it) }.map { it.contentUid }.ifEmpty { return emptyList() }
             val contents = dao.findAllByUids(linkedUids).map { converter.convertFrom(it) }.associateBy { it.uid }
 
             return links.map {
@@ -160,7 +199,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             val (dao, converter) = contentMetaOf(contentType)
             val localSuffixSupport: LocalSuffixSupport = ResourceDefaults
 
-            val linkedUids = temporaryLinks.filter { filter(it) }.map { localSuffixSupport.addLocalSuffix(it.contentUid) }
+            val linkedUids = temporaryLinks.filter { filter(it) }.map { localSuffixSupport.addLocalSuffix(it.contentUid) }.ifEmpty { return emptyList() }
             val contents = dao.findAllByUids(linkedUids)
                 .map { converter.convertFrom(it) }
                 .map { it.copyByUid(localSuffixSupport.removeLocalSuffix(it.uid)) as TC }
@@ -227,13 +266,13 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         val contentResourceDiff = ResourceDiff(
             sourceValues = existedContents,
             targetValues = contents.filter { it.uid.isEmpty() },
-            keySelector = contentDescriptor.keySelector as KeySelector<TC, Any>
+            keySelector = contentDescriptor.keySelector as KeySelectorFunc<TC, Any>
         )
 
         val uidResourceDiff = ResourceDiff(
             sourceValues = existedContents,
             targetValues = contents.filter { it.uid.isNotEmpty() },
-            keySelector = ProvideKeySelector(func = { it.uid })
+            keySelector = { it.uid }
         )
 
         fun toLinks(contents: Iterable<TC>, isRemoved: Boolean): List<ResourceLink<EC>> {
@@ -327,13 +366,13 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         val contentResourceDiff = ResourceDiff(
             sourceValues = existedContents,
             targetValues = uidLessContents,
-            keySelector = contentDescriptor.keySelector as KeySelector<TC, Any>
+            keySelector = contentDescriptor.keySelector as KeySelectorFunc<TC, Any>
         )
 
         val uidResourceDiff = ResourceDiff(
             sourceValues = existedContents,
             targetValues = uidFulContents,
-            keySelector = ProvideKeySelector(func = { it.uid })
+            keySelector = { it.uid }
         )
 
         val localSuffixSupport = ResourceDefaults

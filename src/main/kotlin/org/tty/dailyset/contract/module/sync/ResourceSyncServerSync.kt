@@ -27,20 +27,9 @@ interface ResourceSyncServerSync<TC: ResourceContent, ES, EC>: ResourceSyncModul
      */
     fun readUpdate(uid: String, version: Int): UpdateResult<TC, ES, EC>
 
-    /**
-     * read the certain contentType update result to **client**
-     *
-     * **notice:** *writeUpdateContents* in **client** is not allowed.
-     * @throws IllegalArgumentException resource set of uid is not existed.
-     */
-    fun readUpdateContents(uid: String, contentType: EC, version: Int): TypedResourcesUpdate<TC, EC>
-
     @UseTransaction
     fun writeTemporaryAll(temporaryResults: List<TemporaryResult<TC, ES, EC>>, timeWriting: LocalDateTime): List<ResourceSet<ES>>
 
     @UseTransaction
     fun writeTemporary(temporaryResult: TemporaryResult<TC, ES, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
-
-    @UseTransaction
-    fun writeTemporaryContents(uid: String, typedResourcesTemp: TypedResourcesTemporary<TC, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
 }

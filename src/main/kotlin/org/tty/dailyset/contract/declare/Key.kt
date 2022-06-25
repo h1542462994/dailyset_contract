@@ -1,13 +1,11 @@
 package org.tty.dailyset.contract.declare
 
-import org.tty.dailyset.contract.descriptor.ResourceContentDescriptor
-
 /**
  * the key of the [ResourceContent].
  *
  * it is used to locate the resourceContent when **uid** is empty.
  *
- * @see KeySelector
+ * @see KeySelectorFunc
  */
 interface Key<out T> {
     fun key(): T
@@ -18,30 +16,19 @@ interface Key<out T> {
  *
  * it is used to locate the resourceContent when **uid** is empty.
  *
- * **default impl** is the [Key] on [ResourceContent], or you can provide [ProvideKeySelector] in [ResourceContentDescriptor]
+ * **default impl** is the [Key] on [ResourceContent], or you can provide it.
+ * @see [defaultKeySelectorFunc]
  */
-interface KeySelector< T, out TK> {
-    fun selectKey(value: @UnsafeVariance T): TK
-}
+typealias KeySelectorFunc<T, TK> = (value: T) -> TK
 
-typealias KeySelectFunc<T, TK> = (value: T) -> TK
-
-class DefaultKeySelector<T, TK>: KeySelector<T, TK> {
-    @Suppress("UNCHECKED_CAST")
-    override fun selectKey(value: T): TK {
-        return if (value is Key<*>) {
+fun <T, TK> defaultKeySelectorFunc(): KeySelectorFunc<T, TK> {
+    return { value: T ->
+        if (value is Key<*>) {
+            @Suppress("UNCHECKED_CAST")
             value.key() as TK
         } else {
             throw IllegalStateException("ResourceContent not implemented Key interface, so we couldn't locate the resource by content, please impl with Key or use ProvideKeySelector instead.")
         }
-    }
-}
-
-class ProvideKeySelector<T, TK>(
-    private val func: KeySelectFunc<T, TK>
-): KeySelector<T, TK> {
-    override fun selectKey(value: T): TK {
-        return func(value)
     }
 }
 

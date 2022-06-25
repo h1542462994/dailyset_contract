@@ -34,9 +34,6 @@ interface ResourceSyncClientSync<TC: ResourceContent, ES, EC>: ResourceSyncModul
     @UseTransaction
     fun readTemporary(uid: String, timeReading: LocalDateTime): TemporaryResult<TC, ES, EC>
 
-    @UseTransaction
-    fun readTemporaryContents(uid: String, contentType: EC): TypedResourcesTemporary<TC, EC>
-
     @UseUserContext
     @UseTransaction
     fun acceptTemporaryAll()
