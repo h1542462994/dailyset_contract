@@ -14,6 +14,7 @@ data class ResourceTemporaryLink<EC>(
     val contentType: EC,
     val contentUid: String,
     val action: TemporaryAction,
+    val state: TemporaryState,
     @Serializable(with = LocalDateTimeIso8601Serializer::class)
     val lastTick: LocalDateTime
 ) {

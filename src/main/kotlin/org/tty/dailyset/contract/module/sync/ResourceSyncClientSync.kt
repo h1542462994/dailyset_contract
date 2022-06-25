@@ -25,13 +25,27 @@ interface ResourceSyncClientSync<TC: ResourceContent, ES, EC>: ResourceSyncModul
     fun writeUpdate(updateResult: UpdateResult<TC, ES, EC>): ResourceSet<ES>
 
     @UseUserContext
+    @UseTransaction
     fun readTemporaryAll(timeReading: LocalDateTime): List<TemporaryResult<TC, ES, EC>>
 
+    @UseTransaction
     fun readTemporaryAll(uids: List<String>, timeReading: LocalDateTime): List<TemporaryResult<TC, ES, EC>>
 
+    @UseTransaction
     fun readTemporary(uid: String, timeReading: LocalDateTime): TemporaryResult<TC, ES, EC>
 
+    @UseTransaction
     fun readTemporaryContents(uid: String, contentType: EC): TypedResourcesTemporary<TC, EC>
+
+    @UseUserContext
+    @UseTransaction
+    fun acceptTemporaryAll()
+
+    @UseTransaction
+    fun acceptTemporaryAll(uids: List<String>)
+
+    @UseTransaction
+    fun acceptTemporary(uid: String)
 
     @UseUserContext
     fun readAvailableBases(): List<ResourceSet<ES>>

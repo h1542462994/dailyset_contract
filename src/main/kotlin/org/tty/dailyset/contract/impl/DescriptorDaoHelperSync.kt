@@ -167,7 +167,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
                 .associateBy { it.uid }
 
             return temporaryLinks.map {
-                ResourceContentTn(temporaryLink = it, content = contents[it.contentUid]!!)
+                ResourceContentTn(temporaryLink = it, content = contents[it.contentUid])
             }
         }
     }
@@ -215,8 +215,104 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     /**
      * used for [InAction.Apply], [InAction.Replace] and [InAction.Remove]
      */
-    @Suppress("UNCHECKED_CAST")
+    @Suppress("UNCHECKED_CAST", "DuplicatedCode")
     private fun applyContentsUnionServer(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
+        require(action == InAction.Apply || action == InAction.Remove || action == InAction.Replace) {
+            "other action is not supported."
+        }
+
+        val links = readLinks(set.uid, contentType)
+        val existedContents = readContents(contentType, links) { true }
+        val contentDescriptor = contentDescriptor(contentType)
+        val contentResourceDiff = ResourceDiff(
+            sourceValues = existedContents,
+            targetValues = contents.filter { it.uid.isEmpty() },
+            keySelector = contentDescriptor.keySelector as KeySelector<TC, Any>
+        )
+
+        val uidResourceDiff = ResourceDiff(
+            sourceValues = existedContents,
+            targetValues = contents.filter { it.uid.isNotEmpty() },
+            keySelector = ProvideKeySelector(func = { it.uid })
+        )
+
+        fun toLinks(contents: Iterable<TC>, isRemoved: Boolean): List<ResourceLink<EC>> {
+            return contents.map {
+                ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), isRemoved, timeWriting)
+            }
+        }
+
+        if (action == InAction.Apply || action == InAction.Replace) {
+            // addition
+            val addContents = contentResourceDiff.addValues
+                .map { it.copyByUid(assignedUid(it.uid)) as TC }
+                .plus(uidResourceDiff.addValues)
+            applyContents(contentType, addContents)
+            applyLinks(set.uid, contentType, toLinks(addContents, false))
+
+            // same replace
+            val sameContents = uidResourceDiff.sameValues.map { it.targetValue }
+                .plus(contentResourceDiff.sameValues.map { it.targetValue.copyByUid(it.sourceValue.uid) as TC })
+            applyContents(contentType, sameContents)
+            applyLinks(set.uid, contentType, toLinks(sameContents, false))
+        }
+
+        if (action == InAction.Replace) {
+            // remove not occurred values
+            val removes = contentResourceDiff.removeValues.intersect(uidResourceDiff.removeValues.toSet())
+            applyLinks(set.uid, contentType, toLinks(removes, true))
+        }
+
+        if (action == InAction.Remove) {
+            // remove particular elements
+            val removes = contentResourceDiff.addValues
+                .plus(uidResourceDiff.addValues)
+
+            applyLinks(set.uid, contentType, toLinks(removes, true))
+        }
+    }
+
+    private fun applyContentsRemoveAllServer(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
+        val links = readLinks(set.uid, contentType)
+        applyLinks(set.uid, contentType, links.map { it.copy(version = set.increasedVersion(), isRemoved = true, lastTick = timeWriting) })
+    }
+
+    /**
+     * **complex**
+     */
+    fun applyContentsClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
+        when(action) {
+            InAction.Single -> applyContentSingleClient(set, contentType, contents[0], timeWriting)
+            InAction.RemoveAll -> applyContentRemoveAllClient(set, contentType, timeWriting)
+            else -> applyContentUnionClient(set, contentType, action, contents, timeWriting)
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun applyContentSingleClient(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
+        val links = readLinks(set.uid, contentType)
+        require(links.isEmpty() || links.size == 1) { "single resource, but found more than 1 links." }
+        if (links.isNotEmpty()) {
+            require(links[0].contentUid == content.uid || content.uid.isEmpty()) { "content uid is assigned, but it is differ from the link." }
+        }
+
+        val localSuffixSupport = ResourceDefaults
+        val addContent = content.copyByUid(localSuffixSupport.addLocalSuffix(assignedUid(content.uid))) as TC
+        val temporaryLink = ResourceTemporaryLink(
+            set.uid,
+            contentType,
+            localSuffixSupport.removeLocalSuffix(addContent.uid),
+            action = TemporaryAction.Apply,
+            state = TemporaryState.Created,
+            lastTick = timeWriting
+        )
+
+        applyContents(contentType, contents = listOf(addContent))
+        applyTemporaryLinks(set.uid, contentType, listOf(temporaryLink))
+    }
+
+    @Suppress("UNCHECKED_CAST", "DuplicatedCode")
+    private fun applyContentUnionClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
         require(action == InAction.Apply || action == InAction.Remove || action == InAction.Replace) {
             "other action is not supported."
         }
@@ -240,63 +336,58 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             keySelector = ProvideKeySelector(func = { it.uid })
         )
 
+        val localSuffixSupport = ResourceDefaults
+
+        fun toTemporaryLinks(contents: Iterable<TC>, isRemoved: Boolean, addSuffix: Boolean): List<ResourceTemporaryLink<EC>> {
+            return contents.map {
+                ResourceTemporaryLink(set.uid, contentType,
+                    contentUid = if (addSuffix) { localSuffixSupport.removeLocalSuffix(it.uid) } else it.uid,
+                    action = if (isRemoved) TemporaryAction.Remove else TemporaryAction.Apply,
+                    state = TemporaryState.Created,
+                    lastTick = timeWriting
+                )
+            }
+        }
+
         if (action == InAction.Apply || action == InAction.Replace) {
             // addition
-            val contents1 = contentResourceDiff.addValues.map { it.copyByUid(assignedUid(it.uid)) }
-            val contents2 = uidResourceDiff.addValues
-            val addContents = contents1.plus(contents2)
-            applyContents(contentType, contents2)
-            applyLinks(set.uid, contentType, addContents.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), false, timeWriting) })
+            val addContents = contentResourceDiff.addValues
+                .map { it.copyByUid(localSuffixSupport.addLocalSuffix(assignedUid(it.uid))) as TC }
+                .plus(uidResourceDiff.addValues.map { it.copyByUid(localSuffixSupport.addLocalSuffix(it.uid)) as TC })
+            applyContents(contentType, addContents)
+            applyTemporaryLinks(set.uid, contentType, toTemporaryLinks(addContents, isRemoved = false, addSuffix = true))
 
             // same replace
-            val targetValues = uidResourceDiff.sameValues.map { it.targetValue }
-                .plus(contentResourceDiff.sameValues.map { it.targetValue.copyByUid(it.sourceValue.uid) as TC })
-            applyContents(contentType, targetValues)
-            applyLinks(set.uid, contentType, targetValues.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), false, timeWriting) })
+            val sameContents = uidResourceDiff.sameValues
+                .map { it.targetValue.copyByUid(localSuffixSupport.addLocalSuffix(it.sourceValue.uid)) as TC }
+                .plus(contentResourceDiff.sameValues.map { it.targetValue.copyByUid(localSuffixSupport.addLocalSuffix(it.sourceValue.uid)) as TC })
+            applyContents(contentType, sameContents)
+            applyTemporaryLinks(set.uid, contentType, toTemporaryLinks(sameContents, isRemoved = false, addSuffix = true))
         }
 
         if (action == InAction.Replace) {
             // remove not occurred values
             val removes = contentResourceDiff.removeValues.intersect(uidResourceDiff.removeValues.toSet())
-            applyLinks(set.uid, contentType, removes.map { ResourceLink(set.uid, contentType, it.uid, set.increasedVersion(), true, timeWriting) })
+            applyTemporaryLinks(set.uid, contentType, toTemporaryLinks(removes, isRemoved = true, addSuffix = false))
         }
 
         if (action == InAction.Remove) {
             // remove particular elements
-            val uids = contentResourceDiff.removeValues.map { it.uid }
-            val uids2 = uidResourceDiff.removeValues.map { it.uid }
-            val removeUids = uids.plus(uids2)
+            val removes = uidResourceDiff.addValues
+                .plus(contentResourceDiff.addValues)
 
-            applyLinks(set.uid, contentType, removeUids.map { ResourceLink(set.uid, contentType, it, set.increasedVersion(), true, timeWriting) })
+            applyTemporaryLinks(set.uid, contentType, toTemporaryLinks(removes, isRemoved = true, addSuffix = false))
         }
-    }
-
-    private fun applyContentsRemoveAllServer(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
-        val links = readLinks(set.uid, contentType)
-        applyLinks(set.uid, contentType, links.map { it.copy(version = set.increasedVersion(), isRemoved = true, lastTick = timeWriting) })
-    }
-
-    /**
-     * **complex**
-     */
-    fun applyContentsClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
-        when(action) {
-            InAction.Single -> applyContentSingleClient(set, contentType, contents[0], timeWriting)
-            InAction.RemoveAll -> applyContentRemoveAllClient(set, contentType, timeWriting)
-            else -> applyContentUnionClient(set, contentType, action, contents, timeWriting)
-        }
-    }
-
-    private fun applyContentSingleClient(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
-
-    }
-
-    private fun applyContentUnionClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
-
     }
 
     private fun applyContentRemoveAllClient(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
-
+        val links = readLinks(set.uid, contentType)
+        applyTemporaryLinks(set.uid, contentType, links.map {
+            ResourceTemporaryLink(set.uid, contentType, it.contentUid,
+                action = TemporaryAction.Remove,
+                state = TemporaryState.Created,
+                lastTick = timeWriting)
+        })
     }
 
     fun readSetVisibilities(userUid: String): List<ResourceSetVisibility> {
@@ -366,7 +457,6 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
     @Suppress("UNCHECKED_CAST")
     private fun dynamicCopyByUid(content: TC, uid: String): TC {
-
         return if (content.uid == uid) {
             content
         } else {
