@@ -7,9 +7,9 @@ import org.tty.dailyset.contract.bean.serializer.LocalDateTimeIso8601Serializer
 import java.time.LocalDateTime
 
 @Serializable
-data class TemporalResult<out TC: ResourceContent, ES, EC>(
+data class TemporaryResult<out TC: ResourceContent, ES, EC>(
     val set: ResourceSet<ES>,
-    val typedResourcesTemp: List<TypedResourcesTemp<TC, EC>>,
+    val typedResourcesTemp: List<TypedResourcesTemporary<TC, EC>>,
     @Serializable(with = LocalDateTimeIso8601Serializer::class)
     val timeUpload: LocalDateTime
 )

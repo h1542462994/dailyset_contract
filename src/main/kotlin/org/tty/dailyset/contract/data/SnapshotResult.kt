@@ -2,15 +2,15 @@ package org.tty.dailyset.contract.data
 
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceSet
-import org.tty.dailyset.contract.declare.ResourceTemporalLink
+import org.tty.dailyset.contract.declare.ResourceTemporaryLink
 import kotlinx.serialization.Serializable
 
 /**
  * a snapshot for newest visitable data in **client** or **server**.
  *
- * in **server**, it mean the storage data, because [ResourceTemporalLink] is not included.
+ * in **server**, it mean the storage data, because [ResourceTemporaryLink] is not included.
  *
- * in **client**, it means the storage **download** or **temporal** data.
+ * in **client**, it means the storage **download** or **temporary** data.
  *
  * the data is used for **visualization** or **proceed**, so it is not recommend for transport.
  *

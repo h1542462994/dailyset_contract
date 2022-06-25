@@ -80,6 +80,12 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         }
     }
 
+    override fun readUpdateAll(sets: List<ResourceSet<ES>>): List<UpdateResult<TC, ES, EC>> {
+        return sets.map {
+            readUpdate(it.uid, it.version)
+        }
+    }
+
     override fun readUpdate(uid: String, version: Int): UpdateResult<TC, ES, EC> {
         val set = requireReadBase(uid)
         val typedResources = descriptorDaoHelper.contentTypes()
@@ -93,16 +99,25 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         return internalReadUpdateContents(set, contentType, version)
     }
 
-    override fun writeTemporal(
-        temporalResult: TemporalResult<TC, ES, EC>,
+    override fun writeTemporaryAll(
+        temporaryResults: List<TemporaryResult<TC, ES, EC>>,
+        timeWriting: LocalDateTime
+    ): List<ResourceSet<ES>> {
+        return temporaryResults.map {
+            writeTemporary(it, timeWriting)
+        }
+    }
+
+    override fun writeTemporary(
+        temporaryResult: TemporaryResult<TC, ES, EC>,
         timeWriting: LocalDateTime
     ): ResourceSet<ES> {
         TODO("Not yet implemented")
     }
 
-    override fun writeTemporalContents(
+    override fun writeTemporaryContents(
         uid: String,
-        typedResourcesTemp: TypedResourcesTemp<TC, EC>,
+        typedResourcesTemp: TypedResourcesTemporary<TC, EC>,
         timeWriting: LocalDateTime
     ): ResourceSet<ES> {
         TODO("Not yet implemented")
@@ -127,7 +142,7 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         contentType: EC
     ): TypedResources<TC, EC> {
         val links = descriptorDaoHelper.readLinks(set.uid, contentType)
-        val contents = descriptorDaoHelper.readContents(links) { !it.isRemoved }
+        val contents = descriptorDaoHelper.readContents(contentType, links) { !it.isRemoved }
         return TypedResources(
             contentType = contentType,
             resourceContents = contents
@@ -143,7 +158,7 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         version: Int
     ): TypedResourcesUpdate<TC, EC> {
         val links = descriptorDaoHelper.readLinksThen(set.uid, contentType, version)
-        val contentsUn = descriptorDaoHelper.readContentsUn(links) { true }
+        val contentsUn = descriptorDaoHelper.readContentsUn(contentType, links) { true }
         return TypedResourcesUpdate(
             contentType = contentType,
             resourceContentsUn = contentsUn
@@ -161,7 +176,7 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         val contentType = typedResourcesApplying.contentType
 
         typedResourcesApplying.prelude().forEach {
-            descriptorDaoHelper.applyContentServer(set, contentType, it.action, it.contents, timeWriting)
+            descriptorDaoHelper.applyContentsServer(set, contentType, it.action, it.contents, timeWriting)
         }
 
     }

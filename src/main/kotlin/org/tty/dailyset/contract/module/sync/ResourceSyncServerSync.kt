@@ -1,15 +1,14 @@
 package org.tty.dailyset.contract.module.sync
 
-import org.tty.dailyset.contract.data.TemporalResult
-import org.tty.dailyset.contract.data.TypedResourcesTemp
-import org.tty.dailyset.contract.data.TypedResourcesUpdate
-import org.tty.dailyset.contract.data.UpdateResult
+import org.tty.dailyset.contract.data.*
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceSet
 import java.time.LocalDateTime
 
 
 interface ResourceSyncServerSync<TC: ResourceContent, ES, EC>: ResourceSyncModuleSync<TC, ES, EC> {
+
+    fun readUpdateAll(sets: List<ResourceSet<ES>>): List<UpdateResult<TC, ES, EC>>
 
     /**
      * read the update result to **client**
@@ -23,12 +22,14 @@ interface ResourceSyncServerSync<TC: ResourceContent, ES, EC>: ResourceSyncModul
     /**
      * read the certain contentType update result to **client**
      *
-     * @see [ResourceSyncClientSync.writeUpdateContents]
+     * **notice:** *writeUpdateContents* in **client** is not allowed.
      * @throws IllegalArgumentException resource set of uid is not existed.
      */
     fun readUpdateContents(uid: String, contentType: EC, version: Int): TypedResourcesUpdate<TC, EC>
 
-    fun writeTemporal(temporalResult: TemporalResult<TC, ES, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
+    fun writeTemporaryAll(temporaryResults: List<TemporaryResult<TC, ES, EC>>, timeWriting: LocalDateTime): List<ResourceSet<ES>>
 
-    fun writeTemporalContents(uid: String, typedResourcesTemp: TypedResourcesTemp<TC, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
+    fun writeTemporary(temporaryResult: TemporaryResult<TC, ES, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
+
+    fun writeTemporaryContents(uid: String, typedResourcesTemp: TypedResourcesTemporary<TC, EC>, timeWriting: LocalDateTime): ResourceSet<ES>
 }

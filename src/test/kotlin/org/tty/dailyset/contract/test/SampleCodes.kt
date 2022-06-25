@@ -18,8 +18,8 @@ class SampleCodes {
             registerLinkDescriptor(
                 resourceLinkDescriptorSync(resourceLinkDaoCompatSync = emptyStub())
             )
-            registerTemporalLinkDescriptor(
-                resourceTemporalLinkDescriptorSync(resourceTemporalLinkDaoCompatSync = emptyStub())
+            registerTemporaryLinkDescriptor(
+                resourceTemporaryLinkDescriptorSync(resourceTemporaryLinkDaoCompatSync = emptyStub())
             )
             registerSetVisibilityDescriptor(
                 resourceSetVisibilityDescriptorSync(resourceSetVisibilityDaoCompatSync = emptyStub())

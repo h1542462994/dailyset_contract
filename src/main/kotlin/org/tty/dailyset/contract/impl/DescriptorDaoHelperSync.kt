@@ -1,7 +1,8 @@
 package org.tty.dailyset.contract.impl
 
+import org.tty.dailyset.contract.dao.sync.*
 import org.tty.dailyset.contract.data.InAction
-import org.tty.dailyset.contract.dao.sync.ResourceContentDaoCompatSync
+import org.tty.dailyset.contract.data.ResourceContentTn
 import org.tty.dailyset.contract.data.ResourceContentUn
 import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.descriptor.*
@@ -10,29 +11,30 @@ import java.util.*
 
 /**
  * as SqliteHelper, to simplify the operation of dao interact.
+ *
+ * it defined some **atomic** operation to dao compat. converter is auto invoked.
+ *
+ * TODO: add comments.
  */
 class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
-    descriptorSetSync: DescriptorSetSync<TC, ES, EC>
+    private val descriptorSetSync: DescriptorSetSync<TC, ES, EC>
 ) {
 
-    // FIXME: unsafe typecast.
-    @Suppress("UNCHECKED_CAST")
-    private val setDescriptor = descriptorSetSync.setDescriptor as (ResourceSetDescriptorSync<Any, ES>)
+    /**
+     * **atomic**
+     */
+    fun contentTypes(): List<EC> {
+        return descriptorSetSync.contentDescriptors.map {
+            it.contentType
+        }
+    }
 
-    @Suppress("UNCHECKED_CAST")
-    private val linkDescriptor = descriptorSetSync.linkDescriptor as (ResourceLinkDescriptorSync<Any, EC>)
-
-    @Suppress("UNCHECKED_CAST")
-    private val temporalLinkDescriptor = descriptorSetSync.temporalLinkDescriptor as (ResourceTemporalLinkDescriptor<Any, EC>)
-
-    @Suppress("UNCHECKED_CAST")
-    private val setVisibilityDescriptor = descriptorSetSync.setVisibilityDescriptor as (ResourceSetVisibilityDescriptorSync<Any>)
-    private val contentDescriptors = descriptorSetSync.contentDescriptors
-
+    /**
+     * **atomic**
+     */
     fun readSet(uid: String): ResourceSet<ES>? {
-        val setDaoCompat = setDescriptor.resourceSetDaoCompatSync
-        val converter = setDescriptor.converter
-        val bean = setDaoCompat.findByUid(uid)
+        val (dao, converter) = setMeta()
+        val bean = dao.findByUid(uid)
         return if (bean == null) {
             null
         } else {
@@ -40,71 +42,109 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         }
     }
 
+    /**
+     * **atomic**
+     */
     fun readSets(uids: List<String>): List<ResourceSet<ES>> {
-        val setDaoCompat = setDescriptor.resourceSetDaoCompatSync
-        val converter = setDescriptor.converter
-        val beans = setDaoCompat.findAllByUids(uids)
+        val (dao, converter) = setMeta()
+        val beans = dao.findAllByUids(uids)
         return beans.map { converter.convertFrom(it) }
     }
 
+    /**
+     * **atomic**
+     */
     fun applySet(set: ResourceSet<ES>): Int {
-        val setDaoCompat = setDescriptor.resourceSetDaoCompatSync
-        val converter = setDescriptor.converter
-        return setDaoCompat.apply(converter.convertTo(set))
+        val (dao, converter) = setMeta()
+        return dao.apply(converter.convertTo(set))
     }
 
+    /**
+     * **atomic**
+     */
     fun readLinks(uid: String, contentType: EC): List<ResourceLink<EC>> {
         return readLinksThen(uid, contentType, ResourceDefaults.VERSION_ZERO)
     }
 
-
-    fun applyLinks(uid: String, contentType: EC, links: List<ResourceLink<EC>>): Int {
-        val linkDaoCompat = linkDescriptor.resourceLinkDaoCompatSync
-        val converter = linkDescriptor.converter
-        links.forEach { require(it.setUid == uid && it.contentType == contentType) }
-
-        return linkDaoCompat.applies(
-            links.map { converter.convertTo(it) }
-        )
-    }
-
+    /**
+     * **atomic**
+     */
     fun readLinksThen(uid: String, contentType: EC, version: Int): List<ResourceLink<EC>> {
-        val linkDaoCompat = linkDescriptor.resourceLinkDaoCompatSync
-        val converter = linkDescriptor.converter
-        val beans = linkDaoCompat.findAllByUidAndTypeAndVersionNewer(uid, contentType, version)
+        val (dao, converter) = linkMeta()
+        val beans = dao.findAllByUidAndTypeAndVersionNewer(uid, contentType, version)
         return beans.map {
             converter.convertFrom(it)
         }
     }
 
-    @Suppress("UNCHECKED_CAST", "DuplicatedCode")
-    fun readContents(links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<TC> {
+
+    /**
+     * **atomic**
+     */
+    fun applyLinks(uid: String, contentType: EC, links: List<ResourceLink<EC>>): Int {
+        val (dao, converter) = linkMeta()
+        links.forEach { require(it.setUid == uid && it.contentType == contentType) { "links contains wrong element." } }
+
+        return dao.applies(
+            links.map { converter.convertTo(it) }
+        )
+    }
+
+
+    /**
+     * **atomic**
+     */
+    fun readTemporaryLinkCount(uid: String): Int {
+        val (dao, _) = temporaryLinkMeta()
+        return dao.countByUid(uid)
+    }
+
+    /**
+     * **atomic**
+     */
+    fun readTemporaryLinks(uid: String, contentType: EC): List<ResourceTemporaryLink<EC>> {
+        val (dao, converter) = temporaryLinkMeta()
+        return dao.findAllByUidAndType(uid, contentType).map { converter.convertFrom(it) }
+    }
+
+    /**
+     * **atomic**
+     */
+    fun applyTemporaryLinks(uid: String, contentType: EC, temporaryLinks: List<ResourceTemporaryLink<EC>>) {
+        val (dao, converter) = temporaryLinkMeta()
+        temporaryLinks.forEach { require(it.setUid == uid && it.contentType == contentType) { "links contains wrong element." } }
+        dao.applies(temporaryLinks)
+    }
+
+
+    /**
+     * **atomic**
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun readContents(contentType: EC, links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<TC> {
         return if (links.isEmpty()) {
             emptyList()
         } else {
-            val contentType = links.first().contentType
-            val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
-            val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
-            val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
+            val (dao, converter) = contentMetaOf(contentType)
             val linkedUids = links.filter { filter(it) }.map { it.contentUid }
-            val contents = contentDaoCompat.findAllByUids(linkedUids)
+            val contents = dao.findAllByUids(linkedUids)
             contents.map {
                 converter.convertFrom(it)
             }
         }
     }
 
-    @Suppress("UNCHECKED_CAST", "DuplicatedCode")
-    fun readContentsUn(links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<ResourceContentUn<TC, EC>> {
+    /**
+     * **atomic**
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun readContentsUn(contentType: EC, links: List<ResourceLink<EC>>, filter: (ResourceLink<EC>) -> Boolean): List<ResourceContentUn<TC, EC>> {
         return if (links.isEmpty()) {
             emptyList()
         } else {
-            val contentType = links.first().contentType
-            val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
-            val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
-            val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
+            val (dao, converter) = contentMetaOf(contentType)
             val linkedUids = links.filter { filter(it) }.map { it.contentUid }
-            val contents = contentDaoCompat.findAllByUids(linkedUids).map { converter.convertFrom(it) }.associateBy { it.uid }
+            val contents = dao.findAllByUids(linkedUids).map { converter.convertFrom(it) }.associateBy { it.uid }
 
             return links.map {
                 ResourceContentUn(link = it, content = contents[it.contentUid]!!)
@@ -113,22 +153,45 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun applyContents(contentType: EC, contents: List<TC>) {
-        val contentDescriptor = contentDescriptors.first { it.contentType == contentType }
-        val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync as ResourceContentDaoCompatSync<Any>
-        val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
+    fun readContentsTn(contentType: EC, temporaryLinks: List<ResourceTemporaryLink<EC>>, filter: (ResourceTemporaryLink<EC>) -> Boolean): List<ResourceContentTn<TC, EC>> {
+        return if (temporaryLinks.isEmpty()) {
+            emptyList()
+        } else {
+            val (dao, converter) = contentMetaOf(contentType)
+            val localSuffixSupport: LocalSuffixSupport = ResourceDefaults
 
-        contentDaoCompat.applies(contents.map { converter.convertTo(it) })
+            val linkedUids = temporaryLinks.filter { filter(it) }.map { localSuffixSupport.addLocalSuffix(it.contentUid) }
+            val contents = dao.findAllByUids(linkedUids)
+                .map { converter.convertFrom(it) }
+                .map { it.copyByUid(localSuffixSupport.removeLocalSuffix(it.uid)) as TC }
+                .associateBy { it.uid }
+
+            return temporaryLinks.map {
+                ResourceContentTn(temporaryLink = it, content = contents[it.contentUid]!!)
+            }
+        }
     }
 
-    fun applyContentServer(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) =
+    /**
+     * **atomic**
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun applyContents(contentType: EC, contents: List<TC>) {
+        val (dao, converter) = contentMetaOf(contentType)
+        dao.applies(contents.map { converter.convertTo(it) })
+    }
+
+    /**
+     * **complex**
+     */
+    fun applyContentsServer(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) =
         when (action) {
-            InAction.Single -> applyContentSingleServer(set, contentType, contents[0], timeWriting)
-            InAction.RemoveAll -> applyContentRemoveAllServer(set, contentType, timeWriting)
-            else -> applyContentUnionServer(set, contentType, action, contents, timeWriting)
+            InAction.Single -> applyContentsSingleServer(set, contentType, contents[0], timeWriting)
+            InAction.RemoveAll -> applyContentsRemoveAllServer(set, contentType, timeWriting)
+            else -> applyContentsUnionServer(set, contentType, action, contents, timeWriting)
         }
 
-    private fun applyContentSingleServer(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
+    private fun applyContentsSingleServer(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
         val links = readLinks(set.uid, contentType)
         val newLink = if (links.isEmpty()) {
             ResourceLink(set.uid, contentType, assignedUid(content.uid),
@@ -153,13 +216,13 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
      * used for [InAction.Apply], [InAction.Replace] and [InAction.Remove]
      */
     @Suppress("UNCHECKED_CAST")
-    private fun applyContentUnionServer(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
+    private fun applyContentsUnionServer(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
         require(action == InAction.Apply || action == InAction.Remove || action == InAction.Replace) {
             "other action is not supported."
         }
 
         val links = readLinks(set.uid, contentType)
-        val existedContents = readContents(links) { true }
+        val existedContents = readContents(contentType, links) { true }
         val contentDescriptor = contentDescriptor(contentType)
 
         val uidLessContents = contents.filter { it.uid.isEmpty() }
@@ -208,34 +271,21 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         }
     }
 
-    private fun applyContentRemoveAllServer(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
+    private fun applyContentsRemoveAllServer(set: ResourceSet<ES>, contentType: EC, timeWriting: LocalDateTime) {
         val links = readLinks(set.uid, contentType)
         applyLinks(set.uid, contentType, links.map { it.copy(version = set.increasedVersion(), isRemoved = true, lastTick = timeWriting) })
     }
 
-    fun applyContentClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
+    /**
+     * **complex**
+     */
+    fun applyContentsClient(set: ResourceSet<ES>, contentType: EC, action: InAction, contents: List<TC>, timeWriting: LocalDateTime) {
         when(action) {
             InAction.Single -> applyContentSingleClient(set, contentType, contents[0], timeWriting)
             InAction.RemoveAll -> applyContentRemoveAllClient(set, contentType, timeWriting)
             else -> applyContentUnionClient(set, contentType, action, contents, timeWriting)
         }
     }
-
-    fun readSetVisibilities(userUid: String): List<ResourceSetVisibility> {
-        val setVisibilityDaoCompatSync = setVisibilityDescriptor.resourceSetVisibilityDaoCompatSync
-        val converter = setVisibilityDescriptor.converter
-
-        return setVisibilityDaoCompatSync.findAllByUserUid(userUid).map { converter.convertFrom(it) }
-    }
-
-    fun applySetVisibilities(setVisibilities: List<ResourceSetVisibility>) {
-        val setVisibilityDaoCompatSync = setVisibilityDescriptor.resourceSetVisibilityDaoCompatSync
-        val converter = setVisibilityDescriptor.converter
-
-        setVisibilityDaoCompatSync.applies(setVisibilities)
-    }
-
-
 
     private fun applyContentSingleClient(set: ResourceSet<ES>, contentType: EC, content: TC, timeWriting: LocalDateTime) {
 
@@ -249,14 +299,60 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
     }
 
-    fun contentTypes(): List<EC> {
-        return contentDescriptors.map {
-            it.contentType
-        }
+    fun readSetVisibilities(userUid: String): List<ResourceSetVisibility> {
+        val (dao, converter) = setVisibilityMeta()
+        return dao.findAllByUserUid(userUid).map { converter.convertFrom(it) }
     }
 
-    private fun contentDescriptor(contentType: EC): ResourceContentDescriptorSync<out TC, *, EC> {
-        return contentDescriptors.first { it.contentType == contentType }
+    fun applySetVisibilities(setVisibilities: List<ResourceSetVisibility>) {
+        val (dao, converter) = setVisibilityMeta()
+        dao.applies(setVisibilities.map { converter.convertTo(it) })
+    }
+
+
+    @Suppress("UNCHECKED_CAST")
+    private fun contentDescriptor(contentType: EC): ResourceContentDescriptorSync<out TC, Any, EC> {
+        return descriptorSetSync.contentDescriptors.first { it.contentType == contentType } as ResourceContentDescriptorSync<out TC, Any, EC>
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun setMeta(): Pair<ResourceSetDaoCompatSync<Any>, ResourceConverter<ResourceSet<ES>, Any>> {
+        val setDescriptor = descriptorSetSync.setDescriptor as ResourceSetDescriptorSync<Any, ES>
+        val setDaoCompat = setDescriptor.resourceSetDaoCompatSync
+        val converter = setDescriptor.converter
+        return Pair(setDaoCompat, converter)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun linkMeta(): Pair<ResourceLinkDaoCompatSync<EC, Any>, ResourceConverter<ResourceLink<EC>, Any>> {
+        val linkDescriptor = descriptorSetSync.linkDescriptor as ResourceLinkDescriptorSync<Any, EC>
+        val linkDaoCompat = linkDescriptor.resourceLinkDaoCompatSync
+        val converter = linkDescriptor.converter
+        return Pair(linkDaoCompat, converter)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun temporaryLinkMeta(): Pair<ResourceTemporaryLinkDaoCompatSync<EC, Any>, ResourceConverter<ResourceTemporaryLink<EC>, Any>> {
+        val temporaryLinkDescriptor = descriptorSetSync.temporaryLinkDescriptor as ResourceTemporaryLinkDescriptorSync<Any, EC>
+        val temporaryLinkDaoCompat = temporaryLinkDescriptor.resourceTemporaryLinkDaoCompatSync
+        val converter = temporaryLinkDescriptor.converter
+        return Pair(temporaryLinkDaoCompat, converter)
+    }
+
+    private fun contentMetaOf(contentType: EC): Pair<ResourceContentDaoCompatSync<Any>, ResourceConverter<out TC, Any>> {
+        val contentDescriptor = contentDescriptor(contentType)
+        val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
+        val converter = contentDescriptor.converter
+        return Pair(contentDaoCompat, converter)
+    }
+
+
+    @Suppress("UNCHECKED_CAST")
+    private fun setVisibilityMeta(): Pair<ResourceSetVisibilityDaoCompatSync<Any>, ResourceConverter<ResourceSetVisibility, Any>> {
+        val setVisibilityDescriptor = descriptorSetSync.setVisibilityDescriptor as ResourceSetVisibilityDescriptorSync<Any>
+        val setVisibilityDaoCompat = setVisibilityDescriptor.resourceSetVisibilityDaoCompatSync
+        val converter = setVisibilityDescriptor.converter
+        return Pair(setVisibilityDaoCompat, converter)
     }
 
     /**

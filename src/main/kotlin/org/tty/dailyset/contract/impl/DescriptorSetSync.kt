@@ -6,7 +6,7 @@ import org.tty.dailyset.contract.descriptor.*
 data class DescriptorSetSync<TC: ResourceContent, ES, EC>(
     val setDescriptor: ResourceSetDescriptorSync<*, ES>,
     val linkDescriptor: ResourceLinkDescriptorSync<*, EC>,
-    val temporalLinkDescriptor: ResourceTemporalLinkDescriptorSync<*, EC>?,
+    val temporaryLinkDescriptor: ResourceTemporaryLinkDescriptorSync<*, EC>?,
     val contentDescriptors: List<ResourceContentDescriptorSync<out TC, *, EC>>,
     val setVisibilityDescriptor: ResourceSetVisibilityDescriptorSync<*>?
 )

@@ -17,6 +17,7 @@ class InMemoryResourceSets<ES>(
         }
     }
 
+
     override fun apply(set: ResourceSet<ES>): Int {
         internalStorage[set.uid] = set
         return 1

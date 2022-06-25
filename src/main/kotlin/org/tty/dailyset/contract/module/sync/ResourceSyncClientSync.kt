@@ -10,6 +10,10 @@ import java.time.LocalDateTime
 interface ResourceSyncClientSync<TC: ResourceContent, ES, EC>: ResourceSyncModuleSync<TC, ES, EC> {
     var userContext: UserContext
 
+    @UseTransaction
+    @UseUserContext
+    fun writeUpdateAll(updateResults: List<UpdateResult<TC, ES, EC>>): List<ResourceSet<ES>>
+
     /**
      * write the **download** data from **server**.
      *
@@ -20,22 +24,20 @@ interface ResourceSyncClientSync<TC: ResourceContent, ES, EC>: ResourceSyncModul
     @UseTransaction
     fun writeUpdate(updateResult: UpdateResult<TC, ES, EC>): ResourceSet<ES>
 
-    /**
-     * write the **download** data from **server** for certain contentType.
-     *
-     * @see [ResourceSyncServerSync.readUpdateContents]
-     */
-    @UseTransaction
-    fun writeUpdateContents(typedResourcesUpdate: TypedResourcesUpdate<TC, EC>): ResourceSet<ES>
+    @UseUserContext
+    fun readTemporaryAll(timeReading: LocalDateTime): List<TemporaryResult<TC, ES, EC>>
 
+    fun readTemporaryAll(uids: List<String>, timeReading: LocalDateTime): List<TemporaryResult<TC, ES, EC>>
 
-    fun readTemporal(resourceSet: ResourceSet<ES>, timeReading: LocalDateTime): TemporalResult<TC, ES, EC>
+    fun readTemporary(uid: String, timeReading: LocalDateTime): TemporaryResult<TC, ES, EC>
 
-    fun readTemporalContents(uid: String, contentType: EC, timeReading: LocalDateTime): TypedResourcesTemp<TC, EC>
-
+    fun readTemporaryContents(uid: String, contentType: EC): TypedResourcesTemporary<TC, EC>
 
     @UseUserContext
     fun readAvailableBases(): List<ResourceSet<ES>>
+
+    @UseUserContext
+    fun readTemporaryBases(): List<ResourceSet<ES>>
 
     @UseUserContext
     fun writeAvailableBases(sets: List<ResourceSet<ES>>)

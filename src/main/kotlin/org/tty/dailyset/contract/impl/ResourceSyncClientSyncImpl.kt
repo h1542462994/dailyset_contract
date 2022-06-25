@@ -15,13 +15,8 @@ class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
 
     override var userContext: UserContext = UserContext.EMPTY
 
-
     override fun readBase(uid: String): ResourceSet<ES>? {
         return descriptorDaoHelper.readSet(uid)
-    }
-
-    private fun requireReadBase(uid: String): ResourceSet<ES> {
-        return requireNotNull(readBase(uid)) { "set(${uid} is not existed.)" }
     }
 
     override fun read(uid: String): SnapshotResult<TC, ES, EC> {
@@ -75,24 +70,49 @@ class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
         }
     }
 
+    override fun writeUpdateAll(updateResults: List<UpdateResult<TC, ES, EC>>): List<ResourceSet<ES>> {
+        return updateResults.map {
+            writeUpdate(it)
+        }
+    }
+
     override fun writeUpdate(updateResult: UpdateResult<TC, ES, EC>): ResourceSet<ES> {
-        TODO("Not yet implemented")
+        descriptorDaoHelper.applySet(updateResult.set)
+        return inTransaction {
+            updateResult.typedResourcesUpdate.forEach {
+                internalWriteUpdateContents(updateResult.set, it.contentType, it)
+            }
+            updateResult.set
+        }
     }
 
-    override fun writeUpdateContents(typedResourcesUpdate: TypedResourcesUpdate<TC, EC>): ResourceSet<ES> {
-        TODO("Not yet implemented")
+    override fun readTemporaryAll(timeReading: LocalDateTime): List<TemporaryResult<TC, ES, EC>> {
+        val sets = readTemporaryBases()
+        return readTemporaryAll(sets.map { it.uid }, timeReading)
     }
 
-    override fun readTemporal(resourceSet: ResourceSet<ES>, timeReading: LocalDateTime): TemporalResult<TC, ES, EC> {
-        TODO("Not yet implemented")
+    override fun readTemporaryAll(uids: List<String>, timeReading: LocalDateTime): List<TemporaryResult<TC, ES, EC>> {
+        return uids.map {
+            readTemporary(it, timeReading)
+        }
     }
 
-    override fun readTemporalContents(
+    override fun readTemporary(uid: String, timeReading: LocalDateTime): TemporaryResult<TC, ES, EC> {
+        val set = requireReadBase(uid)
+        require(setHasTemporary(set)) { "set (${uid}) has no temporary data." }
+        val typedResourcesTemp = descriptorDaoHelper.contentTypes()
+            .map { contentType -> internalReadTemporaryContents(set, contentType) }
+            .filter { it.resourceContentsTn.isNotEmpty() }
+        return TemporaryResult(set, typedResourcesTemp, timeReading)
+    }
+
+    override fun readTemporaryContents(
         uid: String,
         contentType: EC,
-        timeReading: LocalDateTime
-    ): TypedResourcesTemp<TC, EC> {
-        TODO("Not yet implemented")
+    ): TypedResourcesTemporary<TC, EC> {
+        val set = requireReadBase(uid)
+        require(setHasTemporary(set)) { "set (${uid} has no temporary data.)"}
+        return internalReadTemporaryContents(set, contentType)
     }
 
     override fun readAvailableBases(): List<ResourceSet<ES>> {
@@ -123,6 +143,21 @@ class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
         descriptorDaoHelper.applySetVisibilities(newVisibilities)
     }
 
+    override fun readTemporaryBases(): List<ResourceSet<ES>> {
+        val sets = readAvailableBases()
+        return sets.filter {
+            setHasTemporary(it)
+        }
+    }
+
+    private fun requireReadBase(uid: String): ResourceSet<ES> {
+        return requireNotNull(readBase(uid)) { "set(${uid} is not existed.)" }
+    }
+
+    private fun setHasTemporary(resourceSet: ResourceSet<ES>): Boolean {
+        return (resourceSet.version == ResourceDefaults.VERSION_ZERO || descriptorDaoHelper.readTemporaryLinkCount(resourceSet.uid) > 0)
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun <R> inTransaction(action: () -> R): R {
         return transactionSupport.withTransactionR(action)
@@ -135,8 +170,22 @@ class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
     private fun internalWriteContents(set: ResourceSet<ES>, typedResourcesApplying: TypedResourcesApplying<TC, EC>, timeWriting: LocalDateTime) {
         val contentType = typedResourcesApplying.contentType
         typedResourcesApplying.prelude().forEach {
-            descriptorDaoHelper.applyContentClient(set, contentType, it.action, it.contents, timeWriting)
+            descriptorDaoHelper.applyContentsClient(set, contentType, it.action, it.contents, timeWriting)
         }
+    }
+
+    private fun internalReadTemporaryContents(set: ResourceSet<ES>, contentType: EC): TypedResourcesTemporary<TC, EC> {
+        // first read temporary links
+        val temporaryLinks = descriptorDaoHelper.readTemporaryLinks(set.uid, contentType)
+        val contentsTn = descriptorDaoHelper.readContentsTn(contentType, temporaryLinks) { true }
+        return TypedResourcesTemporary(contentType, contentsTn)
+    }
+
+    private fun internalWriteUpdateContents(set: ResourceSet<ES>, contentType: EC, typedResourcesUpdate: TypedResourcesUpdate<TC, EC>) {
+        val links = typedResourcesUpdate.resourceContentsUn.map { it.link }
+        val contents = typedResourcesUpdate.resourceContentsUn.map { it.content }
+        descriptorDaoHelper.applyLinks(set.uid, contentType, links)
+        descriptorDaoHelper.applyContents(contentType, contents)
     }
 
     private fun requireUserContext(): UserContext {

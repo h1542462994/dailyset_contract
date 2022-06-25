@@ -6,14 +6,14 @@ import kotlinx.serialization.Transient
 import org.tty.dailyset.contract.bean.serializer.LocalDateTimeIso8601Serializer
 
 /**
- * **resource temporal link.** links the resource which is marked as *local*.
+ * **resource temporary link.** links the resource which is marked as *local*.
  */
 @Serializable
-data class ResourceTemporalLink<EC>(
+data class ResourceTemporaryLink<EC>(
     val setUid: String,
     val contentType: EC,
     val contentUid: String,
-    val action: TemporalAction,
+    val action: TemporaryAction,
     @Serializable(with = LocalDateTimeIso8601Serializer::class)
     val lastTick: LocalDateTime
 ) {

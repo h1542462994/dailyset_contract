@@ -44,15 +44,15 @@ internal class ResourceLinkDescriptorAsyncImpl<TE: Any, EC>(
     override val resourceLinkDaoCompatAsync: ResourceLinkDaoCompatAsync<EC, TE>
 ): ResourceLinkDescriptorAsync<TE, EC>
 
-internal class ResourceTemporalLinkDescriptorSyncImpl<TE: Any, EC>(
-    override val converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
-    override val resourceTemporalLinkDaoCompatSync: ResourceTemporalLinkDaoCompatSync<EC, TE>
-): ResourceTemporalLinkDescriptorSync<TE, EC>
+internal class ResourceTemporaryLinkDescriptorSyncImpl<TE: Any, EC>(
+    override val converter: ResourceConverter<ResourceTemporaryLink<EC>, TE>,
+    override val resourceTemporaryLinkDaoCompatSync: ResourceTemporaryLinkDaoCompatSync<EC, TE>
+): ResourceTemporaryLinkDescriptorSync<TE, EC>
 
-internal class ResourceTemporalLinkDescriptorAsyncImpl<TE: Any, EC>(
-    override val converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
-    override val resourceTemporalLinkDaoCompatAsync: ResourceTemporalLinkDaoCompatAsync<EC, TE>
-): ResourceTemporalLinkDescriptorAsync<TE, EC>
+internal class ResourceTemporaryLinkDescriptorAsyncImpl<TE: Any, EC>(
+    override val converter: ResourceConverter<ResourceTemporaryLink<EC>, TE>,
+    override val resourceTemporaryLinkDaoCompatAsync: ResourceTemporaryLinkDaoCompatAsync<EC, TE>
+): ResourceTemporaryLinkDescriptorAsync<TE, EC>
 
 internal class ResourceSetVisibilityDescriptorSyncImpl<TE: Any>(
     override val converter: ResourceConverter<ResourceSetVisibility, TE>,
@@ -222,41 +222,41 @@ fun <TE: Any, EC> resourceLinkDescriptorAsyncWithConverter(
     )
 }
 
-fun <EC> resourceTemporalLinkDescriptorSync(
-    resourceTemporalLinkDaoCompatSync: ResourceTemporalLinkDaoCompatSync<EC, ResourceTemporalLink<EC>>
-): ResourceTemporalLinkDescriptorSync<ResourceTemporalLink<EC>, EC> {
-    return ResourceTemporalLinkDescriptorSyncImpl(
+fun <EC> resourceTemporaryLinkDescriptorSync(
+    resourceTemporaryLinkDaoCompatSync: ResourceTemporaryLinkDaoCompatSync<EC, ResourceTemporaryLink<EC>>
+): ResourceTemporaryLinkDescriptorSync<ResourceTemporaryLink<EC>, EC> {
+    return ResourceTemporaryLinkDescriptorSyncImpl(
         converter = defaultConverter(),
-        resourceTemporalLinkDaoCompatSync = resourceTemporalLinkDaoCompatSync
+        resourceTemporaryLinkDaoCompatSync = resourceTemporaryLinkDaoCompatSync
     )
 }
 
-fun <TE: Any, EC> resourceTemporalLinkDescriptorSyncWithConverter(
-    converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
-    resourceTemporalLinkDaoCompatSync: ResourceTemporalLinkDaoCompatSync<EC, TE>
-): ResourceTemporalLinkDescriptorSync<TE, EC> {
-    return ResourceTemporalLinkDescriptorSyncImpl(
+fun <TE: Any, EC> resourceTemporaryLinkDescriptorSyncWithConverter(
+    converter: ResourceConverter<ResourceTemporaryLink<EC>, TE>,
+    resourceTemporaryLinkDaoCompatSync: ResourceTemporaryLinkDaoCompatSync<EC, TE>
+): ResourceTemporaryLinkDescriptorSync<TE, EC> {
+    return ResourceTemporaryLinkDescriptorSyncImpl(
         converter = converter,
-        resourceTemporalLinkDaoCompatSync = resourceTemporalLinkDaoCompatSync
+        resourceTemporaryLinkDaoCompatSync = resourceTemporaryLinkDaoCompatSync
     )
 }
 
-fun <EC> resourceTemporalLinkDescriptorAsync(
-    resourceTemporalLinkDaoCompatAsync: ResourceTemporalLinkDaoCompatAsync<EC, ResourceTemporalLink<EC>>
-): ResourceTemporalLinkDescriptorAsync<ResourceTemporalLink<EC>, EC> {
-    return ResourceTemporalLinkDescriptorAsyncImpl(
+fun <EC> resourceTemporaryLinkDescriptorAsync(
+    resourceTemporaryLinkDaoCompatAsync: ResourceTemporaryLinkDaoCompatAsync<EC, ResourceTemporaryLink<EC>>
+): ResourceTemporaryLinkDescriptorAsync<ResourceTemporaryLink<EC>, EC> {
+    return ResourceTemporaryLinkDescriptorAsyncImpl(
         converter = defaultConverter(),
-        resourceTemporalLinkDaoCompatAsync = resourceTemporalLinkDaoCompatAsync
+        resourceTemporaryLinkDaoCompatAsync = resourceTemporaryLinkDaoCompatAsync
     )
 }
 
-fun <TE: Any, EC> resourceTemporalLinkDescriptorAsyncWithConverter(
-    converter: ResourceConverter<ResourceTemporalLink<EC>, TE>,
-    resourceTemporalLinkDaoCompatAsync: ResourceTemporalLinkDaoCompatAsync<EC, TE>
-): ResourceTemporalLinkDescriptorAsync<TE, EC> {
-    return ResourceTemporalLinkDescriptorAsyncImpl(
+fun <TE: Any, EC> resourceTemporaryLinkDescriptorAsyncWithConverter(
+    converter: ResourceConverter<ResourceTemporaryLink<EC>, TE>,
+    resourceTemporalLinkDaoCompatAsync: ResourceTemporaryLinkDaoCompatAsync<EC, TE>
+): ResourceTemporaryLinkDescriptorAsync<TE, EC> {
+    return ResourceTemporaryLinkDescriptorAsyncImpl(
         converter = converter,
-        resourceTemporalLinkDaoCompatAsync = resourceTemporalLinkDaoCompatAsync
+        resourceTemporaryLinkDaoCompatAsync = resourceTemporalLinkDaoCompatAsync
     )
 }
 

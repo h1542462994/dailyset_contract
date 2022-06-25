@@ -12,7 +12,7 @@ interface ResourceSyncBuilderAsync<TC: ResourceContent,ES, EC> {
 
     fun <TE: Any> registerLinkDescriptor(descriptor: ResourceLinkDescriptorAsync<TE, EC>)
 
-    fun <TE: Any> registerTemporalLinkDescriptor(descriptor: ResourceTemporalLinkDescriptorAsync<TE, EC>)
+    fun <TE: Any> registerTemporaryLinkDescriptor(descriptor: ResourceTemporaryLinkDescriptorAsync<TE, EC>)
 
     fun <TE: Any> registerContentDescriptor(descriptor: ResourceContentDescriptorAsync<out TC, TE, EC>)
 

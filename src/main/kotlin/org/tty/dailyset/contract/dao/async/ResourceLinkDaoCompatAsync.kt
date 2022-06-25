@@ -6,7 +6,7 @@ import org.tty.dailyset.contract.declare.ResourceLink
 /**
  * dao compat for [ResourceLink]
  * @param EC enum for resource content.
- * @param TL temporal link storage data.
+ * @param TL link storage data.
  */
 interface ResourceLinkDaoCompatAsync<EC, TL>: DaoCompatAsync<TL> {
     fun findAllByUidAndTypeAndVersionNewerFlow(uid: String, type: EC, version: Int): Flow<List<TL>>

@@ -7,7 +7,7 @@ import org.tty.dailyset.contract.data.TypedResources
 import org.tty.dailyset.contract.data.TypedResourcesApplying
 import org.tty.dailyset.contract.declare.ResourceContent
 import org.tty.dailyset.contract.declare.ResourceSet
-import org.tty.dailyset.contract.declare.ResourceTemporalLink
+import org.tty.dailyset.contract.declare.ResourceTemporaryLink
 import java.time.LocalDateTime
 
 /**
@@ -28,9 +28,9 @@ interface ResourceSyncModuleSync<TC: ResourceContent, ES, EC> {
      *
      * implementation is different between server and client.
      *
-     * in **server**, it mean the storage data, because [ResourceTemporalLink] is not included.
+     * in **server**, it mean the storage data, because [ResourceTemporaryLink] is not included.
      *
-     * in **client**, it means the storage **download** or **temporal** data.
+     * in **client**, it means the storage **download** or **temporary** data.
      *
      * @see [SnapshotResult]
      * @throws IllegalArgumentException resource set of uid is not existed.
@@ -42,9 +42,9 @@ interface ResourceSyncModuleSync<TC: ResourceContent, ES, EC> {
      *
      * implementation is different between server and client.
      *
-     * in **server**, it mean the storage data, because [ResourceTemporalLink] is not included.
+     * in **server**, it mean the storage data, because [ResourceTemporaryLink] is not included.
      *
-     * in **client**, it means the storage **download** or **temporal** data.
+     * in **client**, it means the storage **download** or **temporary** data.
      * @throws IllegalArgumentException resource set of uid is not existed.
      */
     fun readContents(uid: String, contentType: EC): TypedResources<TC, EC>
@@ -63,7 +63,7 @@ interface ResourceSyncModuleSync<TC: ResourceContent, ES, EC> {
      *
      * in **server**, it means apply new data to sync module, and **increase version**.
      *
-     * in **client**, it means apply temporal data to sync module, it will be used as the data **upload** to server.
+     * in **client**, it means apply temporary data to sync module, it will be used as the data **upload** to server.
      *
      * @see [ApplyingReq]
      * @see [org.tty.dailyset.contract.data.applyingReq]
@@ -79,7 +79,7 @@ interface ResourceSyncModuleSync<TC: ResourceContent, ES, EC> {
      *
      * in **server**, it means apply new data to sync module, and **increase version**.
      *
-     * in **client**, it means apply temporal data to sync module, it will be used as the data **upload** to server.
+     * in **client**, it means apply temporary data to sync module, it will be used as the data **upload** to server.
      * @throws IllegalArgumentException resource set of uid is not existed.
      */
     @UseTransaction

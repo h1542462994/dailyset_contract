@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
  *
  * in **server**, it means apply new data to sync module, and **increase version**.
  *
- * in **client**, it means apply temporal data to sync module, it will be used as the data **upload** to server.
+ * in **client**, it means apply temporary data to sync module, it will be used as the data **upload** to server.
  *
  * **notice**: data with be observed by *ResourceSyncModule::read*
  *

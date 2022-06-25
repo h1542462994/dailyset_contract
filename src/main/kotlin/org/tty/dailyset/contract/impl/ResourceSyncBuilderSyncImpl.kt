@@ -10,7 +10,7 @@ import org.tty.dailyset.contract.module.sync.ResourceSyncServerSync
 class ResourceSyncBuilderSyncImpl<TC: ResourceContent, ES, EC>: ResourceSyncBuilderSync<TC, ES, EC> {
     private var setDescriptor: ResourceSetDescriptorSync<*, ES>? = null
     private var linkDescriptor: ResourceLinkDescriptorSync<*, EC>? = null
-    private var temporalLinkDescriptor: ResourceTemporalLinkDescriptorSync<*, EC>? = null
+    private var temporaryLinkDescriptor: ResourceTemporaryLinkDescriptorSync<*, EC>? = null
     private var contentDescriptors: MutableList<ResourceContentDescriptorSync<out TC, *, EC>> = mutableListOf()
     private var setVisibilityDescriptor: ResourceSetVisibilityDescriptorSync<*>? = null
     private var transactionSupport: TransactionSupportSync? = null
@@ -23,8 +23,8 @@ class ResourceSyncBuilderSyncImpl<TC: ResourceContent, ES, EC>: ResourceSyncBuil
         this.linkDescriptor = descriptor
     }
 
-    override fun <TE: Any> registerTemporalLinkDescriptor(descriptor: ResourceTemporalLinkDescriptorSync<TE, EC>) {
-        this.temporalLinkDescriptor = descriptor
+    override fun <TE: Any> registerTemporaryLinkDescriptor(descriptor: ResourceTemporaryLinkDescriptorSync<TE, EC>) {
+        this.temporaryLinkDescriptor = descriptor
     }
 
     override fun <TE: Any> registerContentDescriptor(descriptor: ResourceContentDescriptorSync<out TC, TE, EC>) {
@@ -48,7 +48,7 @@ class ResourceSyncBuilderSyncImpl<TC: ResourceContent, ES, EC>: ResourceSyncBuil
         val descriptorSet = DescriptorSetSync(
             setDescriptor = setDescriptor!!,
             linkDescriptor = linkDescriptor!!,
-            temporalLinkDescriptor = temporalLinkDescriptor!!,
+            temporaryLinkDescriptor = temporaryLinkDescriptor!!,
             contentDescriptors = contentDescriptors,
             setVisibilityDescriptor = setVisibilityDescriptor!!
         )
@@ -59,7 +59,7 @@ class ResourceSyncBuilderSyncImpl<TC: ResourceContent, ES, EC>: ResourceSyncBuil
         val descriptorSet = DescriptorSetSync(
             setDescriptor = setDescriptor!!,
             linkDescriptor = linkDescriptor!!,
-            temporalLinkDescriptor = null,
+            temporaryLinkDescriptor = null,
             contentDescriptors = contentDescriptors,
             setVisibilityDescriptor = null
         )
