@@ -4,9 +4,7 @@ import org.tty.dailyset.contract.annotation.UseTransaction
 import org.tty.dailyset.contract.dao.sync.TransactionSupportSync
 import org.tty.dailyset.contract.dao.withTransactionR
 import org.tty.dailyset.contract.data.*
-import org.tty.dailyset.contract.declare.ResourceContent
-import org.tty.dailyset.contract.declare.ResourceDefaults
-import org.tty.dailyset.contract.declare.ResourceSet
+import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.module.sync.ResourceSyncServerSync
 import java.time.LocalDateTime
 
@@ -178,14 +176,59 @@ class ResourceSyncServerSyncImpl<TC : ResourceContent, ES, EC>(
         newTemporaryResult.typedResourcesTemp.forEach {
             internalWriteTemporaryContents(set, it)
         }
-        return set
+        return updateResourceSet(set)
     }
 
     private fun internalWriteTemporaryContents(
         set: ResourceSet<ES>,
         typedResourcesTemporary: TypedResourcesTemporary<TC, EC>,
     ) {
-        TODO("Not yet implemented")
-    }
+        val contentType = typedResourcesTemporary.contentType
+        val links = descriptorDaoHelper.readLinks(set.uid, contentType)
 
+        val resourceDiff2 = ResourceDiff2(
+            sourceValues = links,
+            targetValues = typedResourcesTemporary.resourceContentsTn,
+            sourceKeySelector = { it.contentUid },
+            targetKeySelector = { it.temporaryLink.contentUid }
+        )
+
+        val applyLinks = mutableListOf<ResourceLink<EC>>()
+        val applyContents = mutableListOf<TC>()
+        resourceDiff2.sameValues.map {
+            val temporaryLink = it.targetValue.temporaryLink
+            val content = it.targetValue.content
+            if (temporaryLink.lastTick.isAfter(it.sourceValue.lastTick)) { // represents the link is newer
+                applyLinks.add(
+                    ResourceLink(
+                        set.uid, contentType, temporaryLink.contentUid,
+                        version = set.increasedVersion(),
+                        isRemoved = temporaryLink.action == TemporaryAction.Remove,
+                        lastTick = temporaryLink.lastTick
+                    ),
+                )
+                if (content != null) {
+                    applyContents.add(content)
+                }
+            }
+        }
+        resourceDiff2.addValues.map {
+            val temporaryLink = it.temporaryLink
+            val content = it.content
+            applyLinks.add(
+                ResourceLink(
+                    set.uid, contentType, temporaryLink.contentUid,
+                    version = set.increasedVersion(),
+                    isRemoved = temporaryLink.action == TemporaryAction.Remove,
+                    lastTick = temporaryLink.lastTick
+                ),
+            )
+            if (content != null) {
+                applyContents.add(content)
+            }
+        }
+
+        descriptorDaoHelper.applyLinks(set.uid, contentType, applyLinks)
+        descriptorDaoHelper.applyContents(contentType, applyContents)
+    }
 }
