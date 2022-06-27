@@ -29,14 +29,13 @@ data class SnapshotResult<out TC: ResourceContent, ES, EC>(
 
 ) {
 
-    operator fun get(contentType: EC): TypedResources<TC, EC> {
-        return typedResources.find { it.contentType == contentType }
-            ?: TypedResources(contentType, listOf())
+    operator fun get(contentType: EC): List<TC> {
+        return typedResources.find { it.contentType == contentType }?.resourceContents
+            ?: emptyList()
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T: ResourceContent> getVariance(contentType: EC): TypedResources<T, EC> {
-        return typedResources.find { it.contentType == contentType } as TypedResources<T, EC>?
-            ?: TypedResources(contentType, listOf())
+    fun <T: ResourceContent> getVariance(contentType: EC): List<T> {
+        return this[contentType] as List<T>
     }
 }

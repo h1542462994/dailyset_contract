@@ -7,7 +7,7 @@ import org.tty.dailyset.contract.declare.*
 import org.tty.dailyset.contract.module.sync.ResourceSyncClientSync
 import java.time.LocalDateTime
 
-class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
+internal class ResourceSyncClientSyncImpl<TC : ResourceContent, ES, EC>(
     descriptorSet: DescriptorSetSync<TC, ES, EC>,
     private val transactionSupport: TransactionSupportSync?
 ) : ResourceSyncClientSync<TC, ES, EC> {

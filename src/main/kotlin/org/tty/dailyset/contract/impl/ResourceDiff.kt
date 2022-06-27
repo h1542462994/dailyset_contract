@@ -1,6 +1,7 @@
 package org.tty.dailyset.contract.impl
 
 import org.tty.dailyset.contract.declare.KeySelectorFunc
+import org.tty.dailyset.contract.declare.defaultKeySelectorFunc
 
 class ResourceDiff<T, TK>(
     sourceValues: List<T>,
@@ -41,4 +42,13 @@ class ResourceDiff<T, TK>(
     val addValues: List<T> get() = addList
     val removeValues: List<T> get() = removeList
 
+    companion object {
+        fun <T, K> empty(): ResourceDiff<T, K> {
+            return ResourceDiff(
+                sourceValues = emptyList(),
+                targetValues = emptyList(),
+                keySelector = { throw IllegalStateException("empty resource diff is not supported.") }
+            )
+        }
+    }
 }

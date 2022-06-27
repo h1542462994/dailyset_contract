@@ -14,14 +14,14 @@ internal class ResourceContentDescriptorSyncImpl<T: ResourceContent, TE: Any, EC
     override val contentType: EC,
     override val keySelector: KeySelectorFunc<T, Any>,
     override val converter: ResourceConverter<T, TE>,
-    override val resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>
+    override val resourceContentDaoCompatSync: ResourceContentDaoCompatSync<TE>,
 ): ResourceContentDescriptorSync<T, TE, EC>
 
 internal class ResourceContentDescriptorAsyncImpl<T: ResourceContent, TE: Any, EC>(
     override val contentType: EC,
     override val keySelector: KeySelectorFunc<T, Any>,
     override val converter: ResourceConverter<T, TE>,
-    override val resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>
+    override val resourceContentDaoCompatAsync: ResourceContentDaoCompatAsync<TE>,
 ): ResourceContentDescriptorAsync<T, TE, EC>
 
 internal class ResourceSetDescriptorSyncImpl<TE: Any, ES>(

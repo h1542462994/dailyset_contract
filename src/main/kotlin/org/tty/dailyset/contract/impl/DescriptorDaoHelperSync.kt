@@ -16,7 +16,7 @@ import java.util.*
  *
  * TODO: add comments.
  */
-class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
+internal class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     private val descriptorSetSync: DescriptorSetSync<TC, ES, EC>
 ) {
 
@@ -259,20 +259,37 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
             "other action is not supported."
         }
 
+        if (contents.isEmpty()) {
+            return
+        }
+
         val links = readLinks(set.uid, contentType)
         val existedContents = readContents(contentType, links) { true }
         val contentDescriptor = contentDescriptor(contentType)
-        val contentResourceDiff = ResourceDiff(
-            sourceValues = existedContents,
-            targetValues = contents.filter { it.uid.isEmpty() },
-            keySelector = contentDescriptor.keySelector as KeySelectorFunc<TC, Any>
-        )
 
-        val uidResourceDiff = ResourceDiff(
-            sourceValues = existedContents,
-            targetValues = contents.filter { it.uid.isNotEmpty() },
-            keySelector = { it.uid }
-        )
+
+        val first = contents.first()
+        // use first element to test it.
+        val runResult = kotlin.runCatching { (contentDescriptor.keySelector as KeySelectorFunc<TC, Any>).invoke(first) }
+        val supportsContentKey = runResult.isSuccess
+
+        if (!supportsContentKey && action == InAction.Replace) {
+            throw IllegalStateException("when use InAction.Replace mode, entry must implements Key<T> or provide KeySelectorFunc<T, TK>")
+        }
+
+        val resourceDiff = if (supportsContentKey) {
+            ResourceDiff(
+                sourceValues = existedContents,
+                targetValues = contents,
+                keySelector = contentDescriptor.keySelector as KeySelectorFunc<TC, Any>
+            )
+        } else {
+            ResourceDiff(
+                sourceValues = existedContents,
+                targetValues = contents,
+                keySelector = { it.uid }
+            )
+        }
 
         fun toLinks(contents: Iterable<TC>, isRemoved: Boolean): List<ResourceLink<EC>> {
             return contents.map {
@@ -282,30 +299,26 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
         if (action == InAction.Apply || action == InAction.Replace) {
             // addition
-            val addContents = contentResourceDiff.addValues
+            val addContents = resourceDiff.addValues
                 .map { it.copyByUid(assignedUid(it.uid)) as TC }
-                .plus(uidResourceDiff.addValues)
             applyContents(contentType, addContents)
             applyLinks(set.uid, contentType, toLinks(addContents, false))
 
             // same replace
-            val sameContents = uidResourceDiff.sameValues.map { it.targetValue }
-                .plus(contentResourceDiff.sameValues.map { it.targetValue.copyByUid(it.sourceValue.uid) as TC })
+            val sameContents = resourceDiff.sameValues.map { it.targetValue.copyByUid(it.sourceValue.uid) as TC }
             applyContents(contentType, sameContents)
             applyLinks(set.uid, contentType, toLinks(sameContents, false))
         }
 
         if (action == InAction.Replace) {
             // remove not occurred values
-            val removes = contentResourceDiff.removeValues.intersect(uidResourceDiff.removeValues.toSet())
+            val removes = resourceDiff.removeValues
             applyLinks(set.uid, contentType, toLinks(removes, true))
         }
 
         if (action == InAction.Remove) {
             // remove particular elements
-            val removes = contentResourceDiff.addValues
-                .plus(uidResourceDiff.addValues)
-
+            val removes = resourceDiff.addValues
             applyLinks(set.uid, contentType, toLinks(removes, true))
         }
     }
@@ -468,6 +481,7 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         return Pair(temporaryLinkDaoCompat, converter)
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun contentMetaOf(contentType: EC): Pair<ResourceContentDaoCompatSync<Any>, ResourceConverter<TC, Any>> {
         val contentDescriptor = contentDescriptor(contentType)
         val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync as ResourceContentDaoCompatSync<Any>

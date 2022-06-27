@@ -7,7 +7,7 @@ import org.tty.dailyset.contract.module.sync.ResourceSyncBuilderSync
 import org.tty.dailyset.contract.module.sync.ResourceSyncClientSync
 import org.tty.dailyset.contract.module.sync.ResourceSyncServerSync
 
-class ResourceSyncBuilderSyncImpl<TC: ResourceContent, ES, EC>: ResourceSyncBuilderSync<TC, ES, EC> {
+internal class ResourceSyncBuilderSyncImpl<TC: ResourceContent, ES, EC>: ResourceSyncBuilderSync<TC, ES, EC> {
     private var setDescriptor: ResourceSetDescriptorSync<*, ES>? = null
     private var linkDescriptor: ResourceLinkDescriptorSync<*, EC>? = null
     private var temporaryLinkDescriptor: ResourceTemporaryLinkDescriptorSync<*, EC>? = null

@@ -1,95 +1,92 @@
 package org.tty.dailyset.contract.test.vocal
 
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Order
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.*
 import org.tty.dailyset.contract.data.applyingReq
 import org.tty.dailyset.contract.declare.ResourceDefaults
-import org.tty.dailyset.contract.declare.ResourceSet
-import org.tty.dailyset.contract.test.vocal.bean.Album
-import org.tty.dailyset.contract.test.vocal.bean.Music
-import org.tty.dailyset.contract.test.vocal.bean.VocalContentType
-import org.tty.dailyset.contract.test.vocal.bean.VocalType
+import org.tty.dailyset.contract.test.vocal.bean.*
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class VocalTestServer {
     companion object {
         private val vocalEngine = VocalEngine()
         private val vocalServer = vocalEngine.server
+        private val vocalEngineSeeder = VocalEngineSeeder(vocalEngine)
 
-        private const val setUid = "my_vocal"
+        const val SET_UID = "my_vocal"
     }
 
     @Test
-    @Order(0)
     fun testCreateSet() {
+        println(" |: createSet")
+        // seed the engine to init
+        vocalEngineSeeder.call(VocalSeedUntil.Init)
         // in start, the set of my_vocal is not created.
-        assertNull(vocalServer.readBase(setUid))
-
-    }
-
-    @Test
-    @Order(4)
-    fun testElementApply() {
-        println("=== element apply:: ===")
-        val music1 = Music("_id_neo_sky", "NEO_SKY, NEO MAP!", "_id_nijigasaki", "Ed of nijigasaki s01.", 1007)
-        val music2 = Music("_id_susume", "全速ドリーマー", "_id_nijigasaki", "Vocal of distribution.", 9714)
-        val album = Album("_id_nijigasaki", "NEO SKY, NEO MAP!", listOf("_id_neo_sky", "id_susume"), "description elements.")
-
+        assertNull(vocalServer.readBase(SET_UID))
+        assertThrows<IllegalArgumentException> { vocalServer.read(SET_UID) }
+        vocalEngineSeeder.call(VocalSeedUntil.CreateSet)
         println(vocalEngine.setsServer)
-
-        vocalServer.write(applyingReq("my_vocal") {
-            apply(VocalContentType.Music, music1)
-            apply(VocalContentType.Music, music2)
-            apply(VocalContentType.Album, album)
-        }, LocalDateTime.now())
-
-        println(vocalEngine.linksServer)
-        println(vocalEngine.musicsServer)
-        println(vocalEngine.albumsServer)
+        // check the version is 1
+        var set = assertNotNull(vocalServer.readBase(SET_UID))
+        assertEquals(ResourceDefaults.VERSION_INIT, set.version)
+        // create the set repeatedly
+        vocalEngineSeeder.call(VocalSeedUntil.CreateSet)
+        set = assertNotNull(vocalServer.readBase(SET_UID))
+        // check the version is 1
+        assertEquals(ResourceDefaults.VERSION_INIT, set.version)
     }
 
     @Test
-    @Order(8)
-    fun testElementApply2() {
-        println("=== element apply2:: ===")
-
-        val result = vocalServer.read("my_vocal")
-        val musicResult = result.getVariance<Music>(VocalContentType.Music)
-        val song = musicResult.resourceContents.find { it.uid == "_id_susume" }!!
-        vocalServer.write(applyingReq("my_vocal") {
-            apply(VocalContentType.Music, song.copy(description = "Des @V2", contentLength = 1000))
-        }, LocalDateTime.now())
-
+    fun testApplyElementNoUid() {
+        println(" |: applyElementNoUid")
+        // add 1 album and 3 musics
+        vocalEngineSeeder.callToEnd(VocalSeedUntil.ApplyElement)
         println(vocalEngine.linksServer)
         println(vocalEngine.musicsServer)
+        // test count
+        val result = vocalServer.read(SET_UID)
+        val musics = result.getVariance<Music>(VocalContentType.Music)
+        assertEquals(VocalEngineSeeder.MUSIC_COUNT_1, musics.size)
+
     }
 
     @Test
-    @Order(12)
-    fun testElementApply3() {
-        println("=== element apply3:: ===")
+    fun testApplyElementKeySelector() {
+        println(" |: applyElementKeySelector")
+        // add 1 album and 3 musics, same as testApplyNoUid
+        vocalEngineSeeder.callToEnd(VocalSeedUntil.ApplyElement)
+        val name = "Tokimeki Runners"
+        val newDescription = "@Music..insert"
+        // apply a music.
+        val writeMusic = Music("value will not write", name, ResourceDefaults.EMPTY_UID, newDescription, 40009641)
+        val existedMusic = vocalServer
+            .read(SET_UID)
+            .getVariance<Music>(VocalContentType.Music)
+            .find { it.name == name }!!
 
-        val music = Music(ResourceDefaults.EMPTY_UID, "全速ドリーマー", "_id_nijigasaki", "Des @V3", 1001)
-        vocalServer.write(applyingReq("my_vocal") {
-            apply(VocalContentType.Music, music)
+        vocalServer.write(applyingReq(SET_UID) {
+            apply(VocalContentType.Music, writeMusic)
         }, LocalDateTime.now())
-
         println(vocalEngine.linksServer)
         println(vocalEngine.musicsServer)
+        // check count
+        val musics = vocalServer.read(SET_UID).getVariance<Music>(VocalContentType.Music)
+        assertEquals(VocalEngineSeeder.MUSIC_COUNT_1, musics.size)
+        // check the uid is not changed
+        val readMusic = musics.find { it.name == name }!!
+        assertEquals(existedMusic.uid, readMusic.uid)
     }
 
     @Test
-    @Order(16)
-    fun testGetUpdate() {
-        println(vocalServer.readUpdate("my_vocal", ResourceDefaults.VERSION_ZERO))
-        println(vocalServer.readUpdate("my_vocal", 2))
+    fun testRemoveElement() {
+        println(" |: removeElement ")
+        // add 1 album and 3 musics, same as testApplyNoUid
+        vocalEngineSeeder.callToEnd(VocalSeedUntil.ApplyElement)
 
     }
+
 
 
 }
