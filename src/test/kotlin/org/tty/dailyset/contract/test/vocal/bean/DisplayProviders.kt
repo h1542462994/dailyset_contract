@@ -10,8 +10,8 @@ object DisplayProviders {
         } else {
             val element = collection.first()
             when (element) {
-                is Song -> {
-                    collection as Collection<Song>
+                is Music -> {
+                    collection as Collection<Music>
                     formatTable(
                         "Song", collection,
                         title = listOf("uid", "name", "albumUid", "description", "contentLength"),

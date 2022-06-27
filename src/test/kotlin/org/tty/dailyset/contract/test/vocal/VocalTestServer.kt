@@ -16,20 +16,8 @@ import kotlin.test.assertEquals
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class VocalTestServer {
     companion object {
-        private val inMemoryResourceSets = InMemoryResourceSets<VocalType>()
-        private val inMemoryResourceLinks = InMemoryResourceLinks<VocalContentType>()
-        private val inMemorySongs = InMemoryResourceContents<Song>()
-        private val inMemoryAlbums = InMemoryResourceContents<Album>()
-
-        private val vocalSyncServer = resourceSyncServerSync<VocalContent, VocalType, VocalContentType> {
-            registerSetDescriptor(inMemoryResourceSetDescriptorSync(inMemoryResourceSets))
-            registerLinkDescriptor(inMemoryResourceLinkDescriptorSync(inMemoryResourceLinks))
-            registerContentDescriptors(
-                inMemoryResourceContentDescriptorSync(VocalContentType.Song, inMemorySongs),
-                inMemoryResourceContentDescriptorSync(VocalContentType.Album, inMemoryAlbums)
-            )
-
-        }
+        private val vocalEngine = VocalEngine()
+        private val vocalServer = VocalEngine().server
     }
 
     @Test
@@ -38,35 +26,35 @@ class VocalTestServer {
         println("=== create:: ===")
 
         val set = ResourceSet("my_vocal", VocalType.Normal, ResourceDefaults.VERSION_ZERO)
-        val created = vocalSyncServer.createIfAbsent(set)
+        val created = vocalServer.createIfAbsent(set)
 
         assertEquals(1, created.version)
-        assertEquals(1, inMemoryResourceSets.size)
-        val element = inMemoryResourceSets["my_vocal"]!!
+        assertEquals(1, vocalEngine.setsServer.size)
+        val element = vocalEngine.setsServer["my_vocal"]!!
         assertEquals(1, element.version)
 
-        println(inMemoryResourceSets)
+        println(vocalEngine.setsClient)
     }
 
     @Test
     @Order(4)
     fun testElementApply() {
         println("=== element apply:: ===")
-        val song1 = Song("_id_neo_sky", "NEO_SKY, NEO MAP!", "_id_nijigasaki", "Ed of nijigasaki s01.", 1007)
-        val song2 = Song("_id_susume", "全速ドリーマー", "_id_nijigasaki", "Vocal of distribution.", 9714)
+        val music1 = Music("_id_neo_sky", "NEO_SKY, NEO MAP!", "_id_nijigasaki", "Ed of nijigasaki s01.", 1007)
+        val music2 = Music("_id_susume", "全速ドリーマー", "_id_nijigasaki", "Vocal of distribution.", 9714)
         val album = Album("_id_nijigasaki", "NEO SKY, NEO MAP!", listOf("_id_neo_sky", "id_susume"), "description elements.")
 
-        println(inMemoryResourceSets)
+        println(vocalEngine.setsServer)
 
-        vocalSyncServer.write(applyingReq("my_vocal") {
-            apply(VocalContentType.Song, song1)
-            apply(VocalContentType.Song, song2)
+        vocalServer.write(applyingReq("my_vocal") {
+            apply(VocalContentType.Music, music1)
+            apply(VocalContentType.Music, music2)
             apply(VocalContentType.Album, album)
         }, LocalDateTime.now())
 
-        println(inMemoryResourceLinks)
-        println(inMemorySongs)
-        println(inMemoryAlbums)
+        println(vocalEngine.linksServer)
+        println(vocalEngine.musicsServer)
+        println(vocalEngine.albumsServer)
     }
 
     @Test
@@ -74,15 +62,15 @@ class VocalTestServer {
     fun testElementApply2() {
         println("=== element apply2:: ===")
 
-        val result = vocalSyncServer.read("my_vocal")
-        val songResult = result.getVariance<Song>(VocalContentType.Song)
-        val song = songResult.resourceContents.find { it.uid == "_id_susume" }!!
-        vocalSyncServer.write(applyingReq("my_vocal") {
-            apply(VocalContentType.Song, song.copy(description = "Des @V2", contentLength = 1000))
+        val result = vocalServer.read("my_vocal")
+        val musicResult = result.getVariance<Music>(VocalContentType.Music)
+        val song = musicResult.resourceContents.find { it.uid == "_id_susume" }!!
+        vocalServer.write(applyingReq("my_vocal") {
+            apply(VocalContentType.Music, song.copy(description = "Des @V2", contentLength = 1000))
         }, LocalDateTime.now())
 
-        println(inMemoryResourceLinks)
-        println(inMemorySongs)
+        println(vocalEngine.linksServer)
+        println(vocalEngine.musicsServer)
     }
 
     @Test
@@ -90,20 +78,20 @@ class VocalTestServer {
     fun testElementApply3() {
         println("=== element apply3:: ===")
 
-        val song = Song(ResourceDefaults.EMPTY_UID, "全速ドリーマー", "_id_nijigasaki", "Des @V3", 1001)
-        vocalSyncServer.write(applyingReq("my_vocal") {
-            apply(VocalContentType.Song, song)
+        val music = Music(ResourceDefaults.EMPTY_UID, "全速ドリーマー", "_id_nijigasaki", "Des @V3", 1001)
+        vocalServer.write(applyingReq("my_vocal") {
+            apply(VocalContentType.Music, music)
         }, LocalDateTime.now())
 
-        println(inMemoryResourceLinks)
-        println(inMemorySongs)
+        println(vocalEngine.linksServer)
+        println(vocalEngine.musicsServer)
     }
 
     @Test
     @Order(16)
     fun testGetUpdate() {
-        println(vocalSyncServer.readUpdate("my_vocal", ResourceDefaults.VERSION_ZERO))
-        println(vocalSyncServer.readUpdate("my_vocal", 2))
+        println(vocalServer.readUpdate("my_vocal", ResourceDefaults.VERSION_ZERO))
+        println(vocalServer.readUpdate("my_vocal", 2))
 
     }
 

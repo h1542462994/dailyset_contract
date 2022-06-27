@@ -1,9 +1,13 @@
 package org.tty.dailyset.contract.test.vocal.bean
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import org.tty.dailyset.contract.declare.Key
 import org.tty.dailyset.contract.declare.ResourceContent
 
-data class Song(
+@SerialName("music")
+@Serializable
+data class Music(
     override val uid: String,
     val name: String,
     val albumUid: String,
