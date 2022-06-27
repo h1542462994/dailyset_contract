@@ -214,7 +214,6 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
     /**
      * **atomic**
      */
-    @Suppress("UNCHECKED_CAST")
     fun applyContents(contentType: EC, contents: List<TC>) {
         val (dao, converter) = contentMetaOf(contentType)
         dao.applies(contents.map { converter.convertTo(it) })
@@ -441,8 +440,8 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
 
     @Suppress("UNCHECKED_CAST")
-    private fun contentDescriptor(contentType: EC): ResourceContentDescriptorSync<out TC, Any, EC> {
-        return descriptorSetSync.contentDescriptors.first { it.contentType == contentType } as ResourceContentDescriptorSync<out TC, Any, EC>
+    private fun contentDescriptor(contentType: EC): ResourceContentDescriptorSync<out TC, *, EC> {
+        return descriptorSetSync.contentDescriptors.first { it.contentType == contentType }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -469,10 +468,10 @@ class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
         return Pair(temporaryLinkDaoCompat, converter)
     }
 
-    private fun contentMetaOf(contentType: EC): Pair<ResourceContentDaoCompatSync<Any>, ResourceConverter<out TC, Any>> {
+    private fun contentMetaOf(contentType: EC): Pair<ResourceContentDaoCompatSync<Any>, ResourceConverter<TC, Any>> {
         val contentDescriptor = contentDescriptor(contentType)
-        val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync
-        val converter = contentDescriptor.converter
+        val contentDaoCompat = contentDescriptor.resourceContentDaoCompatSync as ResourceContentDaoCompatSync<Any>
+        val converter = contentDescriptor.converter as ResourceConverter<TC, Any>
         return Pair(contentDaoCompat, converter)
     }
 

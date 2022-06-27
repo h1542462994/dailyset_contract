@@ -7,33 +7,29 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.tty.dailyset.contract.data.applyingReq
 import org.tty.dailyset.contract.declare.ResourceDefaults
 import org.tty.dailyset.contract.declare.ResourceSet
-import org.tty.dailyset.contract.module.resourceSyncServerSync
-import org.tty.dailyset.contract.test.vocal.bean.*
-import org.tty.dailyset.contract.test.vocal.memory.*
+import org.tty.dailyset.contract.test.vocal.bean.Album
+import org.tty.dailyset.contract.test.vocal.bean.Music
+import org.tty.dailyset.contract.test.vocal.bean.VocalContentType
+import org.tty.dailyset.contract.test.vocal.bean.VocalType
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class VocalTestServer {
     companion object {
         private val vocalEngine = VocalEngine()
-        private val vocalServer = VocalEngine().server
+        private val vocalServer = vocalEngine.server
+
+        private const val setUid = "my_vocal"
     }
 
     @Test
     @Order(0)
     fun testCreateSet() {
-        println("=== create:: ===")
+        // in start, the set of my_vocal is not created.
+        assertNull(vocalServer.readBase(setUid))
 
-        val set = ResourceSet("my_vocal", VocalType.Normal, ResourceDefaults.VERSION_ZERO)
-        val created = vocalServer.createIfAbsent(set)
-
-        assertEquals(1, created.version)
-        assertEquals(1, vocalEngine.setsServer.size)
-        val element = vocalEngine.setsServer["my_vocal"]!!
-        assertEquals(1, element.version)
-
-        println(vocalEngine.setsClient)
     }
 
     @Test
