@@ -237,9 +237,9 @@ internal class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
                 isRemoved = false,
                 lastTick = timeWriting)
         } else {
-            require(links.size == 1) { "single resource, but found more than 1 links." }
+            check(links.size == 1) { "single resource, but found more than 1 links." }
             val firstLink = links.first()
-            require(firstLink.contentUid == content.uid || content.uid.isEmpty()) { "content uid is assigned, but it is differ from the link." }
+//            check(firstLink.contentUid == content.uid || content.uid.isEmpty()) { "content uid is assigned, but it is differ from the link." }
             firstLink.copy(
                 version = set.increasedVersion(),
                 isRemoved = false,
@@ -318,7 +318,7 @@ internal class DescriptorDaoHelperSync<TC: ResourceContent, ES, EC>(
 
         if (action == InAction.Remove) {
             // remove particular elements
-            val removes = resourceDiff.addValues
+            val removes = resourceDiff.sameValues.map { it.sourceValue }
             applyLinks(set.uid, contentType, toLinks(removes, true))
         }
     }

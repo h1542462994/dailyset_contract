@@ -104,9 +104,10 @@ internal class VocalEngineSeeder(private val vocalEngine: VocalEngine) {
         private const val SET_UID = VocalTestServer.SET_UID
         private val VOCAL_SET = ResourceSet(SET_UID, VocalType.Normal, ResourceDefaults.VERSION_ZERO)
         private val ALBUM = Album(ResourceDefaults.EMPTY_UID, "LoveLive虹咲学园偶像同好会-Tokimeki Runners", emptyList(), "@Album")
-        private val MUSIC_1 = Music(ResourceDefaults.EMPTY_UID, "Tokimeki Runners", ResourceDefaults.EMPTY_UID, "@Music1", 40009641)
+        val MUSIC_1 = Music(ResourceDefaults.EMPTY_UID, "Tokimeki Runners", ResourceDefaults.EMPTY_UID, "@Music1", 40009641)
         private val MUSIC_2 = Music(ResourceDefaults.EMPTY_UID, "夢への一歩", ResourceDefaults.EMPTY_UID, "@Music2", 37820201)
         private val MUSIC_3 = Music(ResourceDefaults.EMPTY_UID, "CHASE!", ResourceDefaults.EMPTY_UID, "@Music3", 34693281)
+        val MUSIC_4 = Music(ResourceDefaults.EMPTY_UID, "ダイアモンド", ResourceDefaults.EMPTY_UID, "@Music4", 31795561)
 
         const val MUSIC_COUNT_1 = 3
     }
