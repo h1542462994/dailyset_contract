@@ -1,16 +1,19 @@
+@file:Suppress("PropertyName")
+
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kotlinSerializationVersion: String by extra { "1.3.3" }
-val kotlinSerializationPluginVersion: String by extra { "1.6.10" }
-val kotlinCoroutinesVersion: String by extra { "1.6.1" }
+val kotlin_serialization_version: String by project
+val kotlin_coroutines_version: String by project
 
 plugins {
-    kotlin("jvm") version "1.6.21"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("jvm") version "1.7.0"
+    kotlin("plugin.serialization") version "1.7.0"
+    id("java")
+    id("maven-publish")
 }
 
 group = "org.tty.dailyset"
-version = "1.0-SNAPSHOT"
+version = "1.0.0-alpha01-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -22,8 +25,8 @@ dependencies {
     // kotlinx
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlinSerializationVersion}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${kotlinCoroutinesVersion}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${kotlin_serialization_version}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${kotlin_coroutines_version}")
 }
 
 tasks.test {
@@ -32,5 +35,34 @@ tasks.test {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+
+
+            from(components["java"])
+        }
+
+        repositories {
+            mavenLocal()
+        }
+    }
+}
+
+
+tasks.javadoc {
+    if (JavaVersion.current().isJava9Compatible) {
+        (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
+    }
 }
 
